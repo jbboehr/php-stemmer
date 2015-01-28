@@ -1,3 +1,5 @@
+/tests/
+
 .*project
 *~
 .deps
@@ -15,10 +17,11 @@ nbproject
 build
 modules
 test.php
-tests/*.diff
-tests/*.exp
-tests/*.php
-tests/*.sh
+#tests/*.diff
+#tests/*.exp
+#tests/*.php
+#tests/*.sh
+#tests/*.phpt # :(
 Makefile
 Makefile.fragments
 Makefile.global
