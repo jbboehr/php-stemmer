@@ -38,21 +38,21 @@ PHP_FUNCTION(stemword)
 {
     zval *lang, *enc, *arg;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", &arg,&lang,&enc) == FAILURE)RETURN_NULL();
+    if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", &arg, &lang, &enc) == FAILURE ) {
+        RETURN_NULL();
+    }
       
     convert_to_string(lang);
     convert_to_string(enc);
                    
     struct sb_stemmer * stemmer;
     
-    //char * language = "kraaij_pohlmann";
-    //char * charenc = "UTF_8";
-        
-    stemmer = sb_stemmer_new(Z_STRVAL_P(lang),Z_STRVAL_P(enc));
-    if(!stemmer) RETURN_NULL();
+    stemmer = sb_stemmer_new(Z_STRVAL_P(lang), Z_STRVAL_P(enc));
+    if( !stemmer ) {
+        RETURN_NULL();
+    }
     
-    if(Z_TYPE_P(arg) == IS_ARRAY)
-    {
+    if( Z_TYPE_P(arg) == IS_ARRAY ) {
       array_init(return_value);
       zval **data;
       HashTable *arr_hash;
@@ -70,15 +70,12 @@ PHP_FUNCTION(stemword)
           }
           add_next_index_string(return_value,stemmed,1);         
       }
-    }else{
+    } else {
       convert_to_string(arg);    
       const sb_symbol *stemmed = sb_stemmer_stem(stemmer, Z_STRVAL_P(arg), Z_STRLEN_P(arg));
-      if(stemmed)ZVAL_STRING( return_value, stemmed, 1);
+      if( stemmed ) {
+        ZVAL_STRING(return_value, stemmed, 1);
+      }
     }
     sb_stemmer_delete(stemmer);
-    
-   // RETURN_STRING(stemmed, 1);
-   //return 1;
 }
-
-

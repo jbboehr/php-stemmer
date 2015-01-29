@@ -2,15 +2,19 @@
 
 $baseDir = __DIR__ . '/snowball-data/';
 
+$disabledLanguages = array('lovins', 'kraaij_pohlmann', 'german2');
+
 $languages = array();
 foreach( scandir($baseDir) as $lang ) {
     if( $lang[0] === '.' || !is_dir($baseDir . $lang) ) {
         continue;
     }
-    $languages[] = $lang;
+    if( !in_array($lang, $disabledLanguages) ) {
+	    $languages[] = $lang;
+    }
 }
 
-$maxlen = 500;
+$maxlen = 5000;
 
 function test_head($fh, $lang, $index) {
     fwrite($fh, "--TEST--\n");
@@ -20,17 +24,19 @@ function test_head($fh, $lang, $index) {
 }
 
 function test_case($fh, $lang, $inputarr, $outputarr) {
+    $charset = 'UTF_8';
+    
     fwrite($fh, "--FILE--\n");
     fwrite($fh, "<" . "?" ."php\n");
     foreach( $inputarr as $line ) {
         fwrite($fh, ' echo stemword(' 
-                . var_export(trim($line), true) . ', ' 
-                . var_export(ltrim($lang, '2'), true) . ', ' 
-                . '"UTF_8"),"\n";' . "\n");
+                . var_export($line, true) . ', ' 
+                . var_export($lang, true) . ', ' 
+                . var_export($charset, true) . '),"\n";' . "\n");
     }
     fwrite($fh, "--EXPECT--\n");
     foreach( $outputarr as $line ) {
-        fwrite($fh, $line);
+        fwrite($fh, $line . "\n");
     }
 }
 
@@ -44,11 +50,40 @@ function do_test($lang, $index, $inputarr, $outputarr) {
     echo "Wrote ", $testFile, ", ", count($inputarr), " cases\n";
 }
 
+function mb_fgets($fh)
+{
+    $buf = '';
+    $pos = false;
+    $fstart = ftell($fh);
+    while( !feof($fh) ) {
+        $str = fread($fh, 256);
+        if( $str === false ) {
+            break;
+        }
+        $buf .= $str;
+        $pos = mb_strpos($buf, "\n");
+        if( $pos !== false ) {
+            break;
+        }
+    }
+    
+    // Not found, return the rest of string
+    if( $pos === false ) {
+        return $buf ? $buf : false;
+    }
+    
+    // Return up to and including the newline, and rewind the file descriptor
+    $ret = mb_substr($buf, 0, $pos);
+    fseek($fh, $fstart + $pos + 1, SEEK_SET);
+    return $ret;
+}
+
+
 foreach( $languages as $lang ) {
     $langDir = $baseDir . $lang . '/';
     
-    $fh2 = fopen($langDir . 'voc.txt', 'r');
-    $fh3 = fopen($langDir . 'output.txt', 'r');
+    $fh2 = fopen($langDir . 'voc.txt', 'rb');
+    $fh3 = fopen($langDir . 'output.txt', 'rb');
     if( !$fh2 || !$fh3 ) {
         exit(1);
     }
@@ -58,17 +93,17 @@ foreach( $languages as $lang ) {
     $counter = 0;
     $inputarr = array();
     $outputarr = array();
-    while( false !== ($buffer2 = fgets($fh2)) &&
-           false !== ($buffer3 = fgets($fh3)) ) {
-        // Write a test
-        if( $counter++ > $maxlen ) {
-            $counter = 0;
-            $index++;
-            do_test($lang, $index, $inputarr, $outputarr);
-            $inputarr = array();
-            $outputarr = array();
-        }
-        // Add to buf array
+    while( false !== ($buffer2 = mb_fgets($fh2)) &&
+           false !== ($buffer3 = mb_fgets($fh3)) ) {
+            // Write a test
+            if( ++$counter >= $maxlen ) {
+                $counter = 0;
+                $index++;
+                do_test($lang, $index, $inputarr, $outputarr);
+                $inputarr = array();
+                $outputarr = array();
+            }
+            // Add to buf array
         $inputarr[] = $buffer2;
         $outputarr[] = $buffer3;
     }
