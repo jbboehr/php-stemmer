@@ -1,0 +1,22 @@
+language: php
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq autoconf automake gawk gcc libstemmer-dev libtool m4 make pkg-config
+
+php:
+  - 5.3
+  - 5.4
+  - 5.5
+
+script:
+  - phpize
+  - CPPFLAGS="-I/usr" ./configure --enable-stemmer
+  - make
+  - php generate-tests.php
+  - echo n | make test
+
+branches:
+  only:
+    - master
+
