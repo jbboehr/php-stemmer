@@ -2,25 +2,28 @@
 
 $baseDir = __DIR__ . '/snowball-data/';
 
-$disabledLanguages = array('lovins', 'kraaij_pohlmann', 'german2');
+//$disabledLanguages = array('lovins', 'kraaij_pohlmann', 'german2');
 
 $languages = array();
 foreach( scandir($baseDir) as $lang ) {
     if( $lang[0] === '.' || !is_dir($baseDir . $lang) ) {
         continue;
     }
-    if( !in_array($lang, $disabledLanguages) ) {
+    //if( !in_array($lang, $disabledLanguages) ) {
 	    $languages[] = $lang;
-    }
+    //}
 }
 
 $maxlen = 5000;
 
 function test_head($fh, $lang, $index) {
     fwrite($fh, "--TEST--\n");
-    fwrite($fh, "Snowball Data $lang #$index\n");
+    fwrite($fh, "Stemmer - Snowball Data $lang #$index\n");
     fwrite($fh, "--SKIPIF--\n");
-    fwrite($fh, "<" . "?" ."php if(!extension_loaded('stemmer')) die('skip '); " . "?" . ">\n");
+    fwrite($fh, "<" . "?" ."php \n");
+    fwrite($fh, "if( !extension_loaded('stemmer') ) die('skip '); \n");
+    fwrite($fh, "if( !in_array(" . var_export($lang, true) . ", stemmer_languages()) ) die('skip ');\n");
+    fwrite($fh, "?" . ">\n");
 }
 
 function test_case($fh, $lang, $inputarr, $outputarr) {
@@ -29,7 +32,7 @@ function test_case($fh, $lang, $inputarr, $outputarr) {
     fwrite($fh, "--FILE--\n");
     fwrite($fh, "<" . "?" ."php\n");
     foreach( $inputarr as $line ) {
-        fwrite($fh, ' echo stemword(' 
+        fwrite($fh, ' echo stemmer_stem_word(' 
                 . var_export($line, true) . ', ' 
                 . var_export($lang, true) . ', ' 
                 . var_export($charset, true) . '),"\n";' . "\n");
@@ -42,6 +45,9 @@ function test_case($fh, $lang, $inputarr, $outputarr) {
 
 function do_test($lang, $index, $inputarr, $outputarr) {
     $testFile = __DIR__ . '/tests/data-' . $lang . '-' . $index . '.phpt';
+    if( file_exists($testFile) ) {
+        unlink($testFile);
+    }
     $fh = fopen($testFile, 'c');
     test_head($fh, $lang, $index);
     test_case($fh, $lang, $inputarr, $outputarr);

@@ -6,8 +6,33 @@
 #include "php_stemmer.h"
 #include "libstemmer.h"
 
+static PHP_MINFO_FUNCTION(stemmer)
+{
+  char ** list = sb_stemmer_list();
+  char ** ptr;
+  char language_list[256];
+  size_t len = 0;
+
+  // Make a list of supported languages
+  language_list[0] = '\0';
+  for( ptr = list ; *ptr != NULL; ptr++ ) {
+    len += strlen(*ptr);
+    strncat(language_list, *ptr, sizeof(language_list) - len - 1);
+    len += 1;
+    strncat(language_list, " ", sizeof(language_list) - len - 1);
+  }
+  language_list[len - 1] = '\0';
+
+  // Print the table now
+  php_info_print_table_start();
+  php_info_print_table_row(2, "Version", PHP_STEMMER_VERSION);
+  php_info_print_table_row(2, "Languages", language_list);
+  php_info_print_table_end();
+}
+
 static zend_function_entry stemmer_functions[] = {
-    PHP_FE(stemword, NULL)
+    PHP_FE(stemmer_languages, NULL)
+    PHP_FE(stemmer_stem_word, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -21,7 +46,7 @@ zend_module_entry stemmer_module_entry = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    PHP_MINFO(stemmer),
 #if ZEND_MODULE_API_NO >= 20010901
     PHP_STEMMER_VERSION,
 #endif
@@ -32,9 +57,18 @@ zend_module_entry stemmer_module_entry = {
 ZEND_GET_MODULE(stemmer)
 #endif
 
+PHP_FUNCTION(stemmer_languages)
+{
+    char ** list = sb_stemmer_list();
+    char ** ptr;
 
+    array_init(return_value);
+    for( ptr = list ; *ptr != NULL; ptr++ ) {
+        add_next_index_string(return_value, *ptr, 1);
+    }
+}
 
-PHP_FUNCTION(stemword)
+PHP_FUNCTION(stemmer_stem_word)
 {
     zval *lang, *enc, *arg;
     
