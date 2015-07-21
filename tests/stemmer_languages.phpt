@@ -1,5 +1,5 @@
 --TEST--
-stemlist
+stemmer_languages
 --SKIPIF--
 <?php if(!extension_loaded('stemmer')) die('skip '); ?>
 --FILE--
