@@ -2,6 +2,8 @@
 
 $baseDir = __DIR__ . '/snowball-data/';
 
+mb_internal_encoding('ISO-8859-1');
+
 //$disabledLanguages = array('lovins', 'kraaij_pohlmann', 'german2');
 
 $languages = array();
@@ -124,3 +126,4 @@ foreach( $languages as $lang ) {
     fclose($fh2);
     fclose($fh3);
 }
+
