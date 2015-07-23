@@ -8,7 +8,7 @@ than the stem extension found in pecl.
 
 This is a cleanup of [php-stemmer](https://code.google.com/p/php-stemmer/). 
 Tests have been added and the bundled libstemmer has been removed. Functions
-have been prefixed with the extension name, as per PHP guidelines. If you
+have been prefixed with the extension name. If you
 need features not provided by your system's default version of libstemmer, you 
 can recompile libstemmer for your particular system.
 
