@@ -1,7 +1,7 @@
 #ifndef PHP_STEMMER_PHP_H
 #define PHP_STEMMER_PHP_H 1
 
-#define PHP_STEMMER_VERSION "1.0.1"
+#define PHP_STEMMER_VERSION "1.0.2"
 #define PHP_STEMMER_EXTNAME "stemmer"
 
 PHP_FUNCTION(stemmer_languages);
