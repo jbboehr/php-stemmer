@@ -1,82 +1,66 @@
-sudo: false
-
-language: php
-
-php:
-  - '5.6'
-  - '7.0'
-  - '7.1'
-  - '7.2'
-  - '7.3'
-  - 'master'
-
 matrix:
   fast_finish: true
   allow_failures:
-    - php: 'master'
+  - php: 'master'
+  - language: nix
+    env:
+    - NIX_CHANNEL=unstable
+    - NIX_PHP_ATTR=php
   include:
-    - language: nix
-      php:
-      before_install: nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/889c72032f8595fcd7542c6032c208f6b8033db6
-      install:
-      before_script:
-      script: nix-build --argstr phpStemmerVersion $TRAVIS_BRANCH --arg php "(import <nixpkgs> {}).$NIX_PHP_ATTR" | tee result.txt
-      after_success: cat result.txt | cachix push jbboehr-ci
-      after_failure:
-      env:
-        - NIX_PHP_ATTR=php71
-    - language: nix
-      php:
-      before_install: nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/889c72032f8595fcd7542c6032c208f6b8033db6
-      install:
-      before_script:
-      script: nix-build --argstr phpStemmerVersion $TRAVIS_BRANCH --arg php "(import <nixpkgs> {}).$NIX_PHP_ATTR" | tee result.txt
-      after_success: cat result.txt | cachix push jbboehr-ci
-      after_failure:
-      env:
-        - NIX_PHP_ATTR=php72
+  - language: php
+    php: '7.1'
+  - language: php
+    php: '7.2'
+  - language: php
+    php: '7.3'
+  - language: php
+    php: 'master'
+  - language: nix
+    env:
+    - NIX_CHANNEL=18.03
+    - NIX_PHP_ATTR=php56
+  - language: nix
+    env:
+    - NIX_CHANNEL=18.03
+    - NIX_PHP_ATTR=php70
+  - language: nix
+    env:
+    - NIX_CHANNEL=18.09
+    - NIX_PHP_ATTR=php71
+  - language: nix
+    env:
+    - NIX_CHANNEL=19.03
+    - NIX_PHP_ATTR=php72
+  - language: nix
+    env:
+    - NIX_CHANNEL=19.03
+    - NIX_PHP_ATTR=php73
+  - language: nix
+    env:
+    - NIX_CHANNEL=unstable
+    - NIX_PHP_ATTR=php
 
 addons:
   apt:
     packages:
-      - lcov
-      - libstemmer-dev
+    - lcov
+    - libstemmer-dev
 
 env:
   global:
-    - NO_INTERACTION: 1
-    - REPORT_EXIT_STATUS: 1
-    - secure: "LvMgalfr7pG1HrE36Ds+DXL3H7VzgKd+jwk2Yu6AeOlqnReG1iYIkGfZbBT0g3B1Eeh2M9i/XtmUQVeVgn9UH85kU5dJkPF4Rnzg6ZNpMXKcml9vOQlYvKKg9si1wX3g4bKYLXuWI1vrhVcGRydlxReHfqPCxJIsLRF5R8+2yd4="
+    secure: "VCrvkI8wkGdbtss+gYURvoBa9RKAyqV7O8/MxZuiSGJholep4Q9RPYnZpgI4voYxNuKRLbfO1EomtUYzQJxAL8AEH2//8rl9UykfX/Gp+XuramFsbfZEojLTxT3wmWSSvbd92sFw73iiWpstcRvv3pVdWpM6Kb47wERCt5F4WnU="
 
 branches:
   only:
     - master
     - develop
     - travis
-    - ci
 
 before_install:
-  - travis_retry gem install coveralls-lcov
-
-install:
-  - phpize
-  - ./configure CFLAGS="--coverage -fprofile-arcs -ftest-coverage $CFLAGS" LDFLAGS="--coverage $LDFLAGS"
-  - make clean all
-
-before_script:
-  - lcov --directory . --zerocounters
-  - lcov --directory . --capture --compat-libtool --initial --output-file coverage.info
-
-script:
-  - export TEST_PHP_EXECUTABLE=`which php`
-  - php run-tests.php -d extension=stemmer.so -d extension_dir=modules -n ./tests/*.phpt
-
-after_success:
-  - lcov --no-checksum --directory . --capture --compat-libtool --output-file coverage.info
-  - lcov --remove coverage.info "/usr*" --remove coverage.info "*/.phpenv/*" --remove coverage.info "/home/travis/build/include/*" --compat-libtool --output-file coverage.info
-  - coveralls-lcov coverage.info
-
-after_failure:
-  - for i in `find tests -name "*.out" 2>/dev/null`; do echo "-- START ${i}"; cat $i; echo "-- END"; done
-  - for i in `find tests -name "*.mem" 2>/dev/null`; do echo "-- START ${i}"; cat $i; echo "-- END"; done
-
+  - source ./.ci/travis_env.sh
+  - before_install
+install: install
+before_script: before_script
+script: script
+after_success: after_success
+after_failure: after_failure
