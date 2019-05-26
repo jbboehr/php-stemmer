@@ -6,13 +6,8 @@
 #include "php_stemmer.h"
 #include "libstemmer.h"
 
-#if PHP_MAJOR_VERSION < 7
-#define _add_next_index_string(...) add_next_index_string(__VA_ARGS__, 1)
-#define _RETVAL_STRING(a) RETVAL_STRING(a, 1)
-#else
 #define _add_next_index_string add_next_index_string
-#define _RETVAL_STRING(a) RETVAL_STRING(a)
-#endif
+
 
 static PHP_MINFO_FUNCTION(stemmer)
 {
@@ -45,9 +40,7 @@ static zend_function_entry stemmer_functions[] = {
 };
 
 zend_module_entry stemmer_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
     STANDARD_MODULE_HEADER,
-#endif
     PHP_STEMMER_EXTNAME,
     stemmer_functions,
     NULL,
@@ -55,9 +48,7 @@ zend_module_entry stemmer_module_entry = {
     NULL,
     NULL,
     PHP_MINFO(stemmer),
-#if ZEND_MODULE_API_NO >= 20010901
     PHP_STEMMER_VERSION,
-#endif
     STANDARD_MODULE_PROPERTIES
 };
 
@@ -72,28 +63,27 @@ PHP_FUNCTION(stemmer_languages)
 
     array_init(return_value);
     for( ptr = list ; *ptr != NULL; ptr++ ) {
-        _add_next_index_string(return_value, *ptr);
+        add_next_index_string(return_value, *ptr);
     }
 }
 
 PHP_FUNCTION(stemmer_stem_word)
 {
-    zval * lang;
-    zval * enc;
     zval * arg;
+    zend_string * lang;
+    zend_string * enc;
     HashTable * arr_hash;
     HashPosition pointer;
     const sb_symbol * stemmed = "";
     struct sb_stemmer * stemmer;
-    
-    if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzz", &arg, &lang, &enc) == FAILURE ) {
-        RETURN_NULL();
-    }
 
-    convert_to_string(lang);
-    convert_to_string(enc);
+    ZEND_PARSE_PARAMETERS_START(3, 3)
+        Z_PARAM_ZVAL(arg)
+        Z_PARAM_STR(lang)
+        Z_PARAM_STR(enc)
+    ZEND_PARSE_PARAMETERS_END();
 
-    stemmer = sb_stemmer_new(Z_STRVAL_P(lang), Z_STRVAL_P(enc));
+    stemmer = sb_stemmer_new(ZSTR_VAL(lang), ZSTR_VAL(enc));
     if( !stemmer ) {
         RETURN_NULL();
     }
@@ -101,19 +91,6 @@ PHP_FUNCTION(stemmer_stem_word)
     if( Z_TYPE_P(arg) == IS_ARRAY ) {
         array_init(return_value);
         arr_hash = Z_ARRVAL_P(arg);
-#if PHP_MAJOR_VERSION < 7
-        zval ** data;
-        for( zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
-                zend_hash_get_current_data_ex(arr_hash, (void **) &data, &pointer) == SUCCESS;
-                zend_hash_move_forward_ex(arr_hash, &pointer) ) {
-            if( Z_TYPE_PP(data) == IS_STRING ) {
-                stemmed = sb_stemmer_stem(stemmer, Z_STRVAL_PP(data), Z_STRLEN_PP(data));
-                _add_next_index_string(return_value, stemmed);
-            } else {
-                add_next_index_null(return_value);
-            }
-        }
-#else
         zval * data;
         ZEND_HASH_FOREACH_VAL(arr_hash, data) {
             if( Z_TYPE_P(data) == IS_STRING ) {
@@ -123,12 +100,11 @@ PHP_FUNCTION(stemmer_stem_word)
                 add_next_index_null(return_value);
             }
         } ZEND_HASH_FOREACH_END();
-#endif
     } else {
         convert_to_string(arg);    
         stemmed = sb_stemmer_stem(stemmer, Z_STRVAL_P(arg), Z_STRLEN_P(arg));
         if( stemmed ) {
-            _RETVAL_STRING(stemmed);
+            RETVAL_STRING(stemmed);
         }
     }
     sb_stemmer_delete(stemmer);
