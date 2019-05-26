@@ -18,10 +18,6 @@ matrix:
   - language: nix
     env:
     - NIX_CHANNEL=18.03
-    - NIX_PHP_ATTR=php56
-  - language: nix
-    env:
-    - NIX_CHANNEL=18.03
     - NIX_PHP_ATTR=php70
   - language: nix
     env:
