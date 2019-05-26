@@ -9,6 +9,7 @@ let
 in
 
 buildPecl rec {
+  pname = "stemmer";
   name = "stemmer-${version}";
   version = orDefault phpStemmerVersion "v1.0.2";
   src = orDefault phpStemmerSrc (fetchurl {
