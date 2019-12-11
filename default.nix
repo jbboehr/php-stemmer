@@ -1,6 +1,9 @@
 {
   pkgs ? import <nixpkgs> {},
   php ? pkgs.php,
+  buildPecl ? pkgs.callPackage <nixpkgs/pkgs/build-support/build-pecl.nix> {
+    inherit php;
+  },
 
   phpStemmerVersion ? null,
   phpStemmerSrc ? ./.,
@@ -8,6 +11,6 @@
 }:
 
 pkgs.callPackage ./derivation.nix {
-  inherit php phpStemmerVersion phpStemmerSrc phpStemmerSha256;
+  inherit php buildPecl phpStemmerVersion phpStemmerSrc phpStemmerSha256;
 }
 

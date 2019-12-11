@@ -1,6 +1,10 @@
 <?php
 
-$baseDir = __DIR__ . '/snowball-data/';
+if ($argc > 1) {
+  $baseDir = $argv[1] . '/';
+} else {
+  $baseDir = __DIR__ . '/snowball-data/';
+}
 
 mb_internal_encoding('ISO-8859-1');
 
@@ -51,6 +55,7 @@ function do_test($lang, $index, $inputarr, $outputarr) {
         unlink($testFile);
     }
     $fh = fopen($testFile, 'c');
+    if (!$fh) exit(1);
     test_head($fh, $lang, $index);
     test_case($fh, $lang, $inputarr, $outputarr);
     fclose($fh);
