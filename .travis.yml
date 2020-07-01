@@ -2,10 +2,6 @@ matrix:
   fast_finish: true
   allow_failures:
   - php: 'master'
-  - language: nix
-    env:
-    - NIX_CHANNEL=unstable
-    - NIX_PHP_ATTR=php
   include:
   - language: php
     php: '7.2'
@@ -15,22 +11,6 @@ matrix:
     php: '7.4'
   - language: php
     php: 'master'
-  - language: nix
-    env:
-    - NIX_CHANNEL=20.03
-    - NIX_PHP_ATTR=php72
-  - language: nix
-    env:
-    - NIX_CHANNEL=20.03
-    - NIX_PHP_ATTR=php73
-  - language: nix
-    env:
-    - NIX_CHANNEL=20.03
-    - NIX_PHP_ATTR=php74
-  - language: nix
-    env:
-    - NIX_CHANNEL=unstable
-    - NIX_PHP_ATTR=php
 
 addons:
   apt:
@@ -45,7 +25,7 @@ branches:
     - travis
 
 before_install:
-  - source ./.ci/travis_env.sh
+  - source ./.ci/travis_php.sh
   - before_install
 install: install
 before_script: before_script
