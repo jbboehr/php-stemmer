@@ -3,6 +3,7 @@
 #endif
 
 #include "php.h"
+#include "ext/standard/info.h"
 #include "php_stemmer.h"
 #include "libstemmer.h"
 
@@ -33,10 +34,20 @@ static PHP_MINFO_FUNCTION(stemmer)
   php_info_print_table_end();
 }
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(stemmer_languages_args, IS_ARRAY, 0)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(stemmer_stem_word_args, IS_STRING, 1)
+    ZEND_ARG_INFO(0, arg)
+    ZEND_ARG_TYPE_INFO(0, lang, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, enc, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 static zend_function_entry stemmer_functions[] = {
-    PHP_FE(stemmer_languages, NULL)
-    PHP_FE(stemmer_stem_word, NULL)
-    {NULL, NULL, NULL}
+    PHP_FE(stemmer_languages, stemmer_languages_args)
+    PHP_FE(stemmer_stem_word, stemmer_stem_word_args)
+    PHP_FE_END
 };
 
 zend_module_entry stemmer_module_entry = {
@@ -60,6 +71,9 @@ PHP_FUNCTION(stemmer_languages)
 {
     const char ** list = sb_stemmer_list();
     const char ** ptr;
+
+    ZEND_PARSE_PARAMETERS_START(0, 0)
+    ZEND_PARSE_PARAMETERS_END();
 
     array_init(return_value);
     for( ptr = list ; *ptr != NULL; ptr++ ) {
