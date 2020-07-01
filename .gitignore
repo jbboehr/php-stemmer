@@ -1,9 +1,9 @@
-/tests/
 
 .*project
 *~
 .deps
 .dirstamp
+.idea
 .libs
 autom4te.cache
 gmon*
@@ -17,11 +17,11 @@ nbproject
 build
 modules
 test.php
-#tests/*.diff
-#tests/*.exp
-#tests/*.php
-#tests/*.sh
-#tests/*.phpt # :(
+tests/*.diff
+tests/*.exp
+tests/*.php
+tests/*.sh
+tests/data-*
 Makefile
 Makefile.fragments
 Makefile.global
@@ -45,3 +45,4 @@ mkinstalldirs
 run-tests.php
 tmp-php.ini
 specs
+/result*
