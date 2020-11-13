@@ -1,6 +1,7 @@
 # php-stemmer
 
-[![Build Status](https://travis-ci.org/jbboehr/php-stemmer.svg?branch=master)](https://travis-ci.org/jbboehr/php-stemmer)
+[![GitHub Linux Build Status](https://github.com/jbboehr/php-stemmer/workflows/linux/badge.svg)](https://github.com/jbboehr/php-stemmer/actions?query=workflow%3Alinux)
+[![GitHub Docker Build Status](https://github.com/jbboehr/php-stemmer/workflows/docker/badge.svg)](https://github.com/jbboehr/php-stemmer/actions?query=workflow%3Adocker)
 
 This stem extension for PHP provides stemming capability for a variety of 
 languages using Dr. M.F. Porter's Snowball API. It has a much simpler API 

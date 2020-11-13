@@ -23,10 +23,7 @@ export TEST_PHP_EXECUTABLE=`which php`
 function before_install() (
     set -e -o pipefail
 
-    # Don't install this unless we're actually on travis
-    if [[ "${COVERAGE}" = "true" ]] && [[ "${TRAVIS}" = "true" ]]; then
-        gem install coveralls-lcov
-    fi
+    return 0
 )
 
 function install() (
@@ -69,9 +66,6 @@ function after_success() (
             --remove coverage.info "/home/travis/build/include/*" \
             --compat-libtool \
             --output-file coverage.info
-
-        echo "Uploading coverage"
-        coveralls-lcov coverage.info
     fi
 )
 
