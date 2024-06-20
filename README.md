@@ -3,19 +3,19 @@
 [![GitHub Linux Build Status](https://github.com/jbboehr/php-stemmer/workflows/linux/badge.svg)](https://github.com/jbboehr/php-stemmer/actions?query=workflow%3Alinux)
 [![GitHub Docker Build Status](https://github.com/jbboehr/php-stemmer/workflows/docker/badge.svg)](https://github.com/jbboehr/php-stemmer/actions?query=workflow%3Adocker)
 
-This stem extension for PHP provides stemming capability for a variety of 
-languages using Dr. M.F. Porter's Snowball API. It has a much simpler API 
+This stem extension for PHP provides stemming capability for a variety of
+languages using Dr. M.F. Porter's Snowball API. It has a much simpler API
 than the stem extension found in pecl.
 
-This is a cleanup of [php-stemmer](https://code.google.com/p/php-stemmer/). 
+This is a cleanup of [php-stemmer](https://code.google.com/p/php-stemmer/).
 Tests have been added and the bundled libstemmer has been removed. Functions
 have been prefixed with the extension name. If you
-need features not provided by your system's default version of libstemmer, you 
+need features not provided by your system's default version of libstemmer, you
 can recompile libstemmer for your particular system.
 
 ## Installation
 
-### Ubuntu:
+### Ubuntu
 
 ```bash
 sudo apt-get install libstemmer-dev
@@ -39,4 +39,3 @@ var_dump(stemmer_languages()); # array(...)
 ## License
 
 This project is licensed under the [New BSD License](http://opensource.org/licenses/BSD-3-Clause).
-

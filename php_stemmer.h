@@ -2,6 +2,9 @@
 #define PHP_STEMMER_PHP_H 1
 
 #define PHP_STEMMER_VERSION "1.0.3"
+#define PHP_STEMMER_RELEASE "2024-06-19"
+#define PHP_STEMMER_LICENSE "BSD-3-Clause"
+#define PHP_STEMMER_AUTHORS "© anno Domini nostri Jesu Christi 2008-2024 Javeline B.V., John Boehr, & contributors"
 #define PHP_STEMMER_EXTNAME "stemmer"
 
 PHP_FUNCTION(stemmer_languages);

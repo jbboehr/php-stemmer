@@ -2,12 +2,16 @@
 .*project
 *~
 .deps
+.direnv
 .dirstamp
 .idea
 .libs
+.pre-commit-config.yaml
 autom4te.cache
+configure.ac
 gmon*
 *.a
+*.dep
 *.la
 *.lo
 *.log
