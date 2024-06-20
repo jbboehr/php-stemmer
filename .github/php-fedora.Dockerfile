@@ -3,25 +3,29 @@ ARG BASE_IMAGE=fedora:latest
 
 # image0
 FROM ${BASE_IMAGE}
+WORKDIR /build
+
 RUN dnf groupinstall 'Development Tools' -y
 RUN dnf install \
+    git-all \
     gcc \
     automake \
     autoconf \
-    libstemmer-devel \
     libtool \
     php-devel \
+    libstemmer-devel \
     -y
-WORKDIR /build/php-stemmer
+
+WORKDIR /build
 ADD . .
 RUN phpize
-RUN ./configure CFLAGS="-O3"
+RUN ./configure
 RUN make
 RUN make install
 
 # image1
 FROM ${BASE_IMAGE}
-RUN dnf install php-cli libstemmer-devel -y
+RUN dnf install php-cli libstemmer -y
 # this probably won't work on other arches
 COPY --from=0 /usr/lib64/php/modules/stemmer.so /usr/lib64/php/modules/stemmer.so
 # please forgive me

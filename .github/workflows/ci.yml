@@ -1,0 +1,269 @@
+name: ci
+
+on:
+    push:
+        branches:
+            - master
+            - develop
+            - ci
+    pull_request:
+        branches:
+            - master
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        name: "Test | PHP ${{ matrix.php-version }}"
+        strategy:
+            matrix:
+                php-version:
+                    - "8.1"
+                    - "8.2"
+                    - "8.3"
+        steps:
+            -   uses: actions/checkout@v4
+
+            -   uses: awalsh128/cache-apt-pkgs-action@latest
+                with:
+                    packages: libstemmer-dev valgrind
+                    version: 1
+
+            -   name: Install PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    coverage: "none"
+                    extensions: json, opcache
+                    php-version: "${{ matrix.php-version }}"
+                    tools: composer:v2
+
+            -   run: phpize
+
+            -   run: ./configure
+
+            -   run: make
+
+            -   run: make test
+                env:
+                    NO_INTERACTION: 1
+                    REPORT_EXIT_STATUS: 1
+
+            -   run: make test TEST_PHP_ARGS='-m'
+                env:
+                    NO_INTERACTION: 1
+                    REPORT_EXIT_STATUS: 1
+                    USE_ZEND_ALLOC: 0
+
+            -   run: cat tests/*.log
+                if: failure()
+
+    coverage:
+        runs-on: ubuntu-latest
+        name: "Coverage | PHP ${{ matrix.php-version }}"
+        strategy:
+            matrix:
+                php-version:
+                    - "8.1"
+                    - "8.2"
+                    - "8.3"
+        steps:
+            -   uses: actions/checkout@v4
+
+            -   uses: awalsh128/cache-apt-pkgs-action@latest
+                with:
+                    packages: lcov libstemmer-dev valgrind
+                    version: 1
+
+            -   name: Install PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    coverage: pcov
+                    extensions: json, opcache
+                    php-version: "${{ matrix.php-version }}"
+                    tools: composer:v2
+
+            -   run: phpize
+
+            -   run: ./configure CFLAGS="-fprofile-arcs -ftest-coverage ${CFLAGS}" LDFLAGS="--coverage ${LDFLAGS}"
+
+            -   run: lcov --directory . --zerocounters
+
+            -   run: lcov --directory . --capture --compat-libtool --initial --output-file coverage.info
+
+            -   run: make
+
+            -   run: make test
+                env:
+                    NO_INTERACTION: 1
+                    REPORT_EXIT_STATUS: 1
+
+            -   run: cat tests/*.log
+                if: failure()
+
+            -   run: |
+                    lcov --no-checksum --directory . --capture --compat-libtool --output-file coverage.info
+                    lcov --remove coverage.info "/usr*" \
+                        --remove coverage.info "*/.phpenv/*" \
+                        --compat-libtool \
+                        --output-file coverage.info
+
+            -   name: Upload coverage reports to Codecov
+                uses: codecov/codecov-action@v4
+                with:
+                    file: coverage.info
+                    token: ${{ secrets.CODECOV_TOKEN }}
+                    slug: jbboehr/php-stemmer
+
+            -   name: Coveralls
+                uses: coverallsapp/github-action@v2
+                continue-on-error: true
+                with:
+                    file: coverage.info
+                    format: lcov
+                    parallel: true
+
+    finish:
+        needs:
+            - coverage
+            - nix
+        if: ${{ always() }}
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Coveralls Finished
+                uses: coverallsapp/github-action@v2
+                with:
+                    parallel-finished: true
+
+    nix-matrix:
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix }}
+        steps:
+            -   uses: actions/checkout@v4
+            -   uses: cachix/install-nix-action@v26
+            -   id: set-matrix
+                name: Generate Nix Matrix
+                run: |
+                    set -Eeu
+                    matrix="$(nix eval --json '.#githubActions.matrix')"
+                    echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+    nix:
+        name: "nix (${{ matrix.name }})"
+        runs-on: ${{ matrix.os }}
+        needs: nix-matrix
+        strategy:
+            matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
+        steps:
+            -   uses: actions/checkout@v4
+
+            -   name: Set Up Build Cache
+                uses: actions/cache@v4
+                id: nix-cache
+                with:
+                    path: /tmp/nix-store.nar
+                    key: nix-store.nar-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ matrix.attr }}
+                    restore-keys: |
+                        nix-store.nar-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ matrix.attr }}
+                        nix-store.nar-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+                        nix-store.nar-${{ runner.os }}-
+
+            -   uses: cachix/install-nix-action@v26
+                with:
+                    nix_path: nixpkgs=channel:nixos-23.11
+                    extra_nix_config: "system-features = nixos-test benchmark big-parallel kvm"
+
+            -   name: Import Nix Store Cache
+                if: "steps.nix-cache.outputs.cache-hit == 'true'"
+                run: |
+                    nix-store --import < /tmp/nix-store.nar
+
+            -   run: nix build -L ".#${{ matrix.attr }}"
+
+            -   run: find -L result*; cp result-coverage/coverage.info coverage.info || true
+
+            -   name: Upload coverage reports to Codecov
+                if: ${{ hashFiles('coverage.info') != '' }}
+                uses: codecov/codecov-action@v4
+                with:
+                    file: coverage.info
+                    token: ${{ secrets.CODECOV_TOKEN }}
+                    slug: jbboehr/php-stemmer
+
+            -   name: Coveralls
+                if: ${{ hashFiles('coverage.info') != '' }}
+                uses: coverallsapp/github-action@v2
+                continue-on-error: true
+                with:
+                    file: coverage.info
+                    format: lcov
+                    parallel: true
+
+            -   name: Export Nix Store Cache
+                shell: bash
+                # partially based on https://github.com/NixOS/nix/issues/1245#issuecomment-282586759
+                run: |
+                    drv="$(nix-store -qd "$(readlink result)")"
+                    drvRefs="$( echo "$drv" | xargs nix-store -q --references )"
+                    ( echo "$drvRefs" | grep '[.]drv$' | xargs nix-store -q --outputs ;
+                      echo "$drvRefs" | grep -v '[.]drv$' ) | \
+                        xargs nix-store -r | \
+                        xargs nix-store -qR |
+                        xargs nix-store --export > /tmp/nix-store.nar
+
+    docker:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                PHP_VERSION:
+                    - "8.1"
+                    - "8.2"
+                    - "8.3"
+                DOCKER_NAME:
+                    - debian
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                    submodules: recursive
+            -   uses: docker/setup-buildx-action@v3
+            -   uses: docker/build-push-action@v5
+                with:
+                    context: .
+                    file: .github/php-${{ matrix.DOCKER_NAME }}.Dockerfile
+                    cache-from: type=gha
+                    cache-to: type=gha,mode=max
+                    build-args: PHP_VERSION=${{ matrix.PHP_VERSION }}
+                    tags: php-stemmer-${{ matrix.DOCKER_NAME }}
+            -   name: I am tired of writing this shit in YAML and learning a new DSL for every CI service so I am putting everything in a FSCKING BASH SCRIPT
+                env:
+                    PHP_VERSION: ${{ matrix.PHP_VERSION }}
+                    DOCKER_NAME: ${{ matrix.DOCKER_NAME }}
+                run: bash ./.github/scripts/docker.sh
+
+    docker-fedora:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                DOCKER_NAME:
+                    - fedora
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                    submodules: recursive
+            -   uses: docker/setup-buildx-action@v3
+            -   uses: docker/build-push-action@v5
+                with:
+                    context: .
+                    file: .github/php-${{ matrix.DOCKER_NAME }}.Dockerfile
+                    cache-from: type=gha
+                    cache-to: type=gha,mode=max
+                    tags: php-stemmer-${{ matrix.DOCKER_NAME }}
+            -   name: I am tired of writing this shit in YAML and learning a new DSL for every CI service so I am putting everything in a FSCKING BASH SCRIPT
+                env:
+                    DOCKER_NAME: ${{ matrix.DOCKER_NAME }}
+                    TEST_PHP_EXECUTABLE: /usr/bin/php
+                run: bash ./.github/scripts/docker.sh

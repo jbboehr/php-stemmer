@@ -47,7 +47,7 @@
         src' = gitignore.lib.gitignoreSource ./.;
 
         src = pkgs.lib.cleanSourceWith {
-          name = "php-perfidious-source";
+          name = "php-stemmer-source";
           src = src';
           filter = gitignore.lib.gitignoreFilterWith {
             basePath = ./.;
