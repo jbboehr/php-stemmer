@@ -5,15 +5,14 @@ ARG BASE_IMAGE=fedora:latest
 FROM ${BASE_IMAGE}
 WORKDIR /build
 
-RUN dnf groupinstall 'Development Tools' -y
 RUN dnf install \
-    git-all \
-    gcc \
-    automake \
     autoconf \
-    libtool \
-    php-devel \
+    automake \
+    gcc \
     libstemmer-devel \
+    libtool \
+    make \
+    php-devel \
     -y
 
 WORKDIR /build

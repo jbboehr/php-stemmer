@@ -58,8 +58,9 @@ jobs:
                     REPORT_EXIT_STATUS: 1
                     USE_ZEND_ALLOC: 0
 
-            -   run: cat tests/*.log
+            -   name: Print Test Logs
                 if: failure()
+                run: find tests -name '*.log' -exec cat {} +
 
     coverage:
         runs-on: ubuntu-latest
@@ -87,24 +88,27 @@ jobs:
 
             -   run: ./configure CFLAGS="-fprofile-arcs -ftest-coverage ${CFLAGS}" LDFLAGS="--coverage ${LDFLAGS}"
 
+            -   run: make
+
+            -   name: Remove Configure Coverage Artifacts
+                run: find . -name '*conftest*.gcno' -delete
+
             -   run: lcov --directory . --zerocounters
 
             -   run: lcov --directory . --capture --compat-libtool --initial --output-file coverage.info
-
-            -   run: make
 
             -   run: make test
                 env:
                     NO_INTERACTION: 1
                     REPORT_EXIT_STATUS: 1
 
-            -   run: cat tests/*.log
+            -   name: Print Test Logs
                 if: failure()
+                run: find tests -name '*.log' -exec cat {} +
 
             -   run: |
                     lcov --no-checksum --directory . --capture --compat-libtool --output-file coverage.info
                     lcov --remove coverage.info "/usr*" \
-                        --remove coverage.info "*/.phpenv/*" \
                         --compat-libtool \
                         --output-file coverage.info
 
