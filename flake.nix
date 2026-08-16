@@ -56,8 +56,6 @@
             basePath = ./.;
             extraRules = ''
               .clang-format
-              composer.json
-              composer.lock
               .editorconfig
               .envrc
               .gitattributes
@@ -102,12 +100,11 @@
             markdownlint.settings.configuration = {
               MD013 = {
                 line_length = 1488;
-                # this doesn't seem to work
                 table = false;
               };
             };
             shellcheck.enable = true;
-            shellcheck.excludes = ["^\\.envrc$" "suite\\.sh$" "fold\\.sh$" "linux\\.sh$" "docker\\.sh$"];
+            shellcheck.excludes = ["^\\.envrc$"];
           };
         };
 
@@ -122,7 +119,6 @@
               clang-tools
               lcov
               gdb
-              package.php.packages.composer
               valgrind
             ];
             shellHook = ''
@@ -132,12 +128,11 @@
               ln -sf ${package.php.unwrapped.dev}/include/php/ .direnv/include/php
               export REPORT_EXIT_STATUS=1
               export NO_INTERACTION=1
-              export PATH="$PWD/vendor/bin:$PATH"
               # opcache isn't getting loaded for tests because tests are run with '-n' and nixos doesn't compile
               # in opcache and relies on mkWrapper to load extensions
               export TEST_PHP_ARGS='-c ${package.php.phpIni}'
               # php.unwrapped from the buildDeps is overwriting php
-              export PATH="${package.php}/bin:./vendor/bin:$PATH"
+              export PATH="${package.php}/bin:$PATH"
             '';
           };
 
@@ -158,7 +153,7 @@
           stdenv = [
             "gcc"
             "clang"
-            # totally broken
+            # The extension build does not currently support musl.
             # "musl"
           ];
         };
@@ -183,11 +178,6 @@
         packages =
           packages'
           // {
-            # php81 = packages.php81-gcc;
-            # php82 = packages.php82-gcc;
-            # php83 = packages.php83-gcc;
-            # php84 = packages.php84-gcc;
-            # php85 = packages.php85-gcc;
             default = packages.php85-gcc;
           };
       in {
@@ -203,7 +193,6 @@
       }
     )
     // {
-      # prolly gonna break at some point
       githubActions.matrix.include = let
         cleanFn = v:
           v
@@ -212,12 +201,13 @@
             name = builtins.replaceStrings ["githubActions." "checks." "x86_64-linux." "\""] ["" "" "" ""] v.attr;
           };
       in
-        builtins.map cleanFn
-        (nix-github-actions.lib.mkGithubMatrix {
-          attrPrefix = "checks";
-          checks = nixpkgs.lib.getAttrs ["x86_64-linux"] self.checks;
-        })
-        .matrix
-        .include;
+        builtins.filter (entry: entry.name != "default")
+        (builtins.map cleanFn
+          (nix-github-actions.lib.mkGithubMatrix {
+            attrPrefix = "checks";
+            checks = nixpkgs.lib.getAttrs ["x86_64-linux"] self.checks;
+          })
+          .matrix
+          .include);
     };
 }

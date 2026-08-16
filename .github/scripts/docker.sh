@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
 
-set -ex -o pipefail
+set -euxo pipefail
 
-# config
-export PHP_VERSION="${PHP_VERSION:-"8.1"}"
+: "${DOCKER_NAME:?set DOCKER_NAME to debian or fedora}"
+
 export TEST_PHP_EXECUTABLE="${TEST_PHP_EXECUTABLE:-"/usr/local/bin/php"}"
 export RUN_TESTS_PHP="${RUN_TESTS_PHP:-"/usr/local/lib/php/build/run-tests.php"}"
+# The image must already be built and loaded before this test runner is called.
 export IMAGE_TAG="${IMAGE_TAG:-"php-stemmer-${DOCKER_NAME}"}"
 
-docker build \
-    -f ".github/php-${DOCKER_NAME}.Dockerfile" \
-    -t "${IMAGE_TAG}" \
-    --build-arg "PHP_VERSION=${PHP_VERSION}" \
-    .
-
-trap 'catch' ERR
-
 catch() {
-  find tests -print0 -name '*.log'  | xargs -0 -n1 cat
+    find tests -name '*.log' -print0 | xargs -0 -r -n1 cat
 }
+
+trap catch ERR
 
 docker run \
     --env NO_INTERACTION=1 \

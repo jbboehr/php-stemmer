@@ -40,7 +40,6 @@ jobs:
                     coverage: "none"
                     extensions: json, opcache
                     php-version: "${{ matrix.php-version }}"
-                    tools: composer:v2
 
             -   run: phpize
 
@@ -66,13 +65,8 @@ jobs:
         runs-on: ubuntu-latest
         name: "Coverage | PHP ${{ matrix.php-version }}"
         strategy:
-            fail-fast: false
             matrix:
                 php-version:
-                    - "8.1"
-                    - "8.2"
-                    - "8.3"
-                    - "8.4"
                     - "8.5"
         steps:
             -   uses: actions/checkout@v7
@@ -85,10 +79,9 @@ jobs:
             -   name: Install PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    coverage: pcov
+                    coverage: "none"
                     extensions: json, opcache
                     php-version: "${{ matrix.php-version }}"
-                    tools: composer:v2
 
             -   run: phpize
 
@@ -131,9 +124,7 @@ jobs:
                     parallel: true
 
     finish:
-        needs:
-            - coverage
-            - nix
+        needs: coverage
         if: ${{ always() }}
         runs-on: ubuntu-latest
         steps:
@@ -166,17 +157,6 @@ jobs:
         steps:
             -   uses: actions/checkout@v7
 
-            -   name: Set Up Build Cache
-                uses: actions/cache@v6
-                id: nix-cache
-                with:
-                    path: /tmp/nix-store.nar
-                    key: nix-store.nar-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ matrix.attr }}
-                    restore-keys: |
-                        nix-store.nar-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ matrix.attr }}
-                        nix-store.nar-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
-                        nix-store.nar-${{ runner.os }}-
-
             -   uses: cachix/install-nix-action@v31
                 with:
                     nix_path: nixpkgs=channel:nixos-26.05
@@ -188,43 +168,7 @@ jobs:
                     name: fossar
                     skipPush: true
 
-            -   name: Import Nix Store Cache
-                if: "steps.nix-cache.outputs.cache-hit == 'true'"
-                run: |
-                    nix-store --import < /tmp/nix-store.nar
-
             -   run: nix build -L ".#${{ matrix.attr }}"
-
-            -   run: find -L result*; cp result-coverage/coverage.info coverage.info || true
-
-            -   name: Upload coverage reports to Codecov
-                if: ${{ hashFiles('coverage.info') != '' }}
-                uses: codecov/codecov-action@v7
-                with:
-                    files: coverage.info
-                    token: ${{ secrets.CODECOV_TOKEN }}
-                    slug: jbboehr/php-stemmer
-
-            -   name: Coveralls
-                if: ${{ hashFiles('coverage.info') != '' }}
-                uses: coverallsapp/github-action@v2
-                continue-on-error: true
-                with:
-                    file: coverage.info
-                    format: lcov
-                    parallel: true
-
-            -   name: Export Nix Store Cache
-                shell: bash
-                # partially based on https://github.com/NixOS/nix/issues/1245#issuecomment-282586759
-                run: |
-                    drv="$(nix-store -qd "$(readlink result)")"
-                    drvRefs="$( echo "$drv" | xargs nix-store -q --references )"
-                    ( echo "$drvRefs" | grep '[.]drv$' | xargs nix-store -q --outputs ;
-                      echo "$drvRefs" | grep -v '[.]drv$' ) | \
-                        xargs nix-store -r | \
-                        xargs nix-store -qR |
-                        xargs nix-store --export > /tmp/nix-store.nar
 
     docker:
         runs-on: ubuntu-latest
@@ -245,16 +189,17 @@ jobs:
                     submodules: recursive
             -   uses: docker/setup-buildx-action@v4
             -   uses: docker/build-push-action@v7
+                name: Build Docker Image
                 with:
                     context: .
                     file: .github/php-${{ matrix.DOCKER_NAME }}.Dockerfile
-                    cache-from: type=gha
-                    cache-to: type=gha,mode=max
+                    cache-from: type=gha,scope=${{ matrix.DOCKER_NAME }}-${{ matrix.PHP_VERSION }}
+                    cache-to: type=gha,mode=max,scope=${{ matrix.DOCKER_NAME }}-${{ matrix.PHP_VERSION }}
                     build-args: PHP_VERSION=${{ matrix.PHP_VERSION }}
+                    load: true
                     tags: php-stemmer-${{ matrix.DOCKER_NAME }}
-            -   name: I am tired of writing this shit in YAML and learning a new DSL for every CI service so I am putting everything in a FSCKING BASH SCRIPT
+            -   name: Run Docker Tests
                 env:
-                    PHP_VERSION: ${{ matrix.PHP_VERSION }}
                     DOCKER_NAME: ${{ matrix.DOCKER_NAME }}
                 run: bash ./.github/scripts/docker.sh
 
@@ -271,13 +216,15 @@ jobs:
                     submodules: recursive
             -   uses: docker/setup-buildx-action@v4
             -   uses: docker/build-push-action@v7
+                name: Build Docker Image
                 with:
                     context: .
                     file: .github/php-${{ matrix.DOCKER_NAME }}.Dockerfile
-                    cache-from: type=gha
-                    cache-to: type=gha,mode=max
+                    cache-from: type=gha,scope=${{ matrix.DOCKER_NAME }}
+                    cache-to: type=gha,mode=max,scope=${{ matrix.DOCKER_NAME }}
+                    load: true
                     tags: php-stemmer-${{ matrix.DOCKER_NAME }}
-            -   name: I am tired of writing this shit in YAML and learning a new DSL for every CI service so I am putting everything in a FSCKING BASH SCRIPT
+            -   name: Run Docker Tests
                 env:
                     DOCKER_NAME: ${{ matrix.DOCKER_NAME }}
                     TEST_PHP_EXECUTABLE: /usr/bin/php

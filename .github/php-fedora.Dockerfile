@@ -1,7 +1,7 @@
 
 ARG BASE_IMAGE=fedora:latest
 
-# image0
+# Build the extension.
 FROM ${BASE_IMAGE}
 WORKDIR /build
 
@@ -23,11 +23,10 @@ RUN ./configure
 RUN make
 RUN make install
 
-# image1
+# Create the runtime image.
 FROM ${BASE_IMAGE}
 RUN dnf install php-cli libstemmer -y
-# this probably won't work on other arches
+# Fedora installs PHP extensions in an architecture-specific lib64 directory.
 COPY --from=0 /usr/lib64/php/modules/stemmer.so /usr/lib64/php/modules/stemmer.so
-# please forgive me
 COPY --from=0 /usr/lib64/php/build/run-tests.php /usr/local/lib/php/build/run-tests.php
-RUN echo extension=stemmer.so | sudo tee /etc/php.d/90-stemmer.ini
+RUN echo extension=stemmer.so > /etc/php.d/90-stemmer.ini
