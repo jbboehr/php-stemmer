@@ -3,6 +3,7 @@
 #endif
 
 #include "php.h"
+#include "Zend/zend_smart_str.h"
 #include "ext/standard/info.h"
 #include "php_stemmer.h"
 #include "libstemmer.h"
@@ -13,18 +14,16 @@ static PHP_MINFO_FUNCTION(stemmer)
 {
     const char **list = sb_stemmer_list();
     const char **ptr;
-    char language_list[256];
-    size_t len = 0;
+    smart_str language_list = {0};
 
     // Make a list of supported languages
-    language_list[0] = '\0';
     for (ptr = list; *ptr != NULL; ptr++) {
-        len += strlen(*ptr);
-        strncat(language_list, *ptr, sizeof(language_list) - len - 1);
-        len += 1;
-        strncat(language_list, " ", sizeof(language_list) - len - 1);
+        if (language_list.s != NULL) {
+            smart_str_appendc(&language_list, ' ');
+        }
+        smart_str_appends(&language_list, *ptr);
     }
-    language_list[len - 1] = '\0';
+    smart_str_0(&language_list);
 
     // Print the table now
     php_info_print_table_start();
@@ -32,15 +31,16 @@ static PHP_MINFO_FUNCTION(stemmer)
     php_info_print_table_row(2, "Released", PHP_STEMMER_RELEASE);
     php_info_print_table_row(2, "License", PHP_STEMMER_LICENSE);
     php_info_print_table_row(2, "Authors", PHP_STEMMER_AUTHORS);
-    php_info_print_table_row(2, "Languages", language_list);
+    php_info_print_table_row(2, "Languages", language_list.s != NULL ? ZSTR_VAL(language_list.s) : "");
     php_info_print_table_end();
+
+    smart_str_free(&language_list);
 }
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(stemmer_languages_args, IS_ARRAY, 0)
-    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(stemmer_languages_args, 0, 0, IS_ARRAY, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(stemmer_stem_word_args, IS_STRING, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(stemmer_stem_word_args, 0, 3, MAY_BE_ARRAY | MAY_BE_STRING | MAY_BE_NULL)
     ZEND_ARG_INFO(0, arg)
     ZEND_ARG_TYPE_INFO(0, lang, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO(0, enc, IS_STRING, 0)
@@ -59,7 +59,8 @@ zend_module_entry stemmer_module_entry = {
     NULL,
     PHP_MINFO(stemmer),
     PHP_STEMMER_VERSION,
-    STANDARD_MODULE_PROPERTIES};
+    STANDARD_MODULE_PROPERTIES
+};
 
 #ifdef COMPILE_DL_STEMMER
 ZEND_GET_MODULE(stemmer)
@@ -85,8 +86,7 @@ PHP_FUNCTION(stemmer_stem_word)
     zend_string *lang;
     zend_string *enc;
     HashTable *arr_hash;
-    HashPosition pointer;
-    const sb_symbol *stemmed = "";
+    const sb_symbol *stemmed = NULL;
     struct sb_stemmer *stemmer;
 
     ZEND_PARSE_PARAMETERS_START(3, 3)
@@ -107,8 +107,12 @@ PHP_FUNCTION(stemmer_stem_word)
         ZEND_HASH_FOREACH_VAL(arr_hash, data)
         {
             if (Z_TYPE_P(data) == IS_STRING) {
-                stemmed = sb_stemmer_stem(stemmer, Z_STRVAL_P(data), Z_STRLEN_P(data));
-                _add_next_index_string(return_value, stemmed);
+                stemmed = sb_stemmer_stem(stemmer, (const sb_symbol *) Z_STRVAL_P(data), Z_STRLEN_P(data));
+                if (stemmed) {
+                    _add_next_index_string(return_value, (const char *) stemmed);
+                } else {
+                    add_next_index_null(return_value);
+                }
             } else {
                 add_next_index_null(return_value);
             }
@@ -116,9 +120,9 @@ PHP_FUNCTION(stemmer_stem_word)
         ZEND_HASH_FOREACH_END();
     } else {
         convert_to_string(arg);
-        stemmed = sb_stemmer_stem(stemmer, Z_STRVAL_P(arg), Z_STRLEN_P(arg));
+        stemmed = sb_stemmer_stem(stemmer, (const sb_symbol *) Z_STRVAL_P(arg), Z_STRLEN_P(arg));
         if (stemmed) {
-            RETVAL_STRING(stemmed);
+            RETVAL_STRING((const char *) stemmed);
         }
     }
     sb_stemmer_delete(stemmer);

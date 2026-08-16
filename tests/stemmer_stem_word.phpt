@@ -6,6 +6,8 @@ stemmer_stem_word
 <?php
 var_dump(stemmer_stem_word('birds', 'english', 'UTF_8'));
 var_dump(stemmer_stem_word(array('birds', 'words', 123), 'english', 'UTF_8'));
+var_dump(stemmer_stem_word('birds', 'not-a-language', 'UTF_8'));
+var_dump(stemmer_stem_word(array('birds'), 'not-a-language', 'UTF_8'));
 --EXPECT--
 string(4) "bird"
 array(3) {
@@ -16,4 +18,5 @@ array(3) {
   [2]=>
   NULL
 }
-
+NULL
+NULL

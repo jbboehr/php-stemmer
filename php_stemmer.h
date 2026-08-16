@@ -10,7 +10,7 @@
 PHP_FUNCTION(stemmer_languages);
 PHP_FUNCTION(stemmer_stem_word);
 
-extern zend_module_entry stemmmer_module_entry;
+extern zend_module_entry stemmer_module_entry;
 #define phpext_stemmer_ptr &stemmer_module_entry
 
 #endif

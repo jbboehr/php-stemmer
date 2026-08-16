@@ -2,7 +2,7 @@
   description = "jbboehr/php-stemmer";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     systems.url = "github:nix-systems/default-linux";
     flake-utils = {
       url = "github:numtide/flake-utils";
@@ -12,14 +12,16 @@
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-stable.follows = "nixpkgs";
-      inputs.gitignore.follows = "gitignore";
     };
     nix-github-actions = {
       url = "github:nix-community/nix-github-actions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    phps = {
+      url = "github:fossar/nix-phps";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # snowball-data = {
@@ -33,9 +35,10 @@
     nixpkgs,
     flake-utils,
     gitignore,
-    pre-commit-hooks,
+    git-hooks,
     systems,
     nix-github-actions,
+    phps,
     # snowball-data,
     ...
   } @ args:
@@ -85,7 +88,7 @@
             checkSupport = true;
           };
 
-        pre-commit-check = pre-commit-hooks.lib.${system}.run {
+        pre-commit-check = git-hooks.lib.${system}.run {
           src = src';
           hooks = {
             actionlint.enable = true;
@@ -104,7 +107,7 @@
               };
             };
             shellcheck.enable = true;
-            shellcheck.excludes = ["suite.sh" "fold.sh" "linux.sh" "docker.sh"];
+            shellcheck.excludes = ["^\\.envrc$" "suite\\.sh$" "fold\\.sh$" "linux\\.sh$" "docker\\.sh$"];
           };
         };
 
@@ -140,7 +143,8 @@
 
         matrix = with pkgs; {
           php = {
-            inherit php81 php82 php83;
+            php81 = phps.packages.${system}.php81;
+            inherit php82 php83 php84 php85;
           };
           stdenv = {
             gcc = stdenv;
@@ -149,9 +153,8 @@
           };
         };
 
-        # @see https://github.com/NixOS/nixpkgs/pull/110787
-        buildConfs = lib.cartesianProductOfSets {
-          php = ["php81" "php82" "php83"];
+        buildConfs = lib.cartesianProduct {
+          php = builtins.attrNames matrix.php;
           stdenv = [
             "gcc"
             "clang"
@@ -183,7 +186,9 @@
             # php81 = packages.php81-gcc;
             # php82 = packages.php82-gcc;
             # php83 = packages.php83-gcc;
-            default = packages.php81-gcc;
+            # php84 = packages.php84-gcc;
+            # php85 = packages.php85-gcc;
+            default = packages.php85-gcc;
           };
       in {
         inherit packages;
@@ -200,7 +205,12 @@
     // {
       # prolly gonna break at some point
       githubActions.matrix.include = let
-        cleanFn = v: v // {name = builtins.replaceStrings ["githubActions." "checks." "x86_64-linux."] ["" "" ""] v.attr;};
+        cleanFn = v:
+          v
+          // {
+            attr = builtins.replaceStrings ["\""] [""] v.attr;
+            name = builtins.replaceStrings ["githubActions." "checks." "x86_64-linux." "\""] ["" "" "" ""] v.attr;
+          };
       in
         builtins.map cleanFn
         (nix-github-actions.lib.mkGithubMatrix {
