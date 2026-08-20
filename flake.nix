@@ -99,6 +99,30 @@
           };
         };
 
+        # Keep the musl lane CLI-only so CI does not rebuild PHP's full
+        # extension set for a second libc.
+        php85Musl = pkgs.pkgsMusl.php85.unwrapped.buildEnv {
+          inherit
+            (pkgs)
+            autoconf
+            automake
+            bison
+            flex
+            libtool
+            pkg-config
+            re2c
+            ;
+          cgiSupport = false;
+          fpmSupport = false;
+          pearSupport = false;
+          pharSupport = false;
+          phpdbgSupport = false;
+          argon2Support = false;
+          systemdSupport = false;
+          valgrindSupport = false;
+          extensions = _: [];
+        };
+
         pre-commit-check = git-hooks.lib.${system}.run {
           src = src';
           hooks = {
@@ -165,7 +189,6 @@
           stdenv = {
             gcc = stdenv;
             clang = clangStdenv;
-            musl = pkgsMusl.stdenv;
           };
         };
 
@@ -174,8 +197,6 @@
           stdenv = [
             "gcc"
             "clang"
-            # The extension build does not currently support musl.
-            # "musl"
           ];
         };
 
@@ -202,6 +223,11 @@
             php85-debug-zts = makePackage {
               php = php85DebugZts;
               stdenv = matrix.stdenv.gcc;
+            };
+            php85-musl = makePackage {
+              php = php85Musl;
+              stdenv = pkgs.pkgsMusl.stdenv;
+              libstemmer = pkgs.pkgsMusl.libstemmer;
             };
             corpus = makePackage {
               php = matrix.php.php85;
