@@ -4,7 +4,6 @@
   stdenv,
   libstemmer,
   buildPecl,
-  pkg-config,
   src,
   checkSupport ? true,
   corpusData ? null,
@@ -23,7 +22,7 @@ buildPecl (
     makeFlags = ["phpincludedir=$(dev)/include"];
     buildInputs = [libstemmer];
 
-    nativeBuildInputs = [php.unwrapped.dev pkg-config];
+    nativeBuildInputs = [php.unwrapped.dev];
     doCheck = checkSupport;
 
     NO_INTERACTION = "1";
