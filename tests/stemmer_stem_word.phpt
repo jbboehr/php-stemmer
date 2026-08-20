@@ -8,6 +8,11 @@ var_dump(stemmer_stem_word('birds', 'english', 'UTF_8'));
 var_dump(stemmer_stem_word(array('birds', 'words', 123), 'english', 'UTF_8'));
 var_dump(stemmer_stem_word('birds', 'not-a-language', 'UTF_8'));
 var_dump(stemmer_stem_word(array('birds'), 'not-a-language', 'UTF_8'));
+
+$binaryScalar = stemmer_stem_word("\0", 'english', 'UTF_8');
+$binaryArray = stemmer_stem_word(array("\0"), 'english', 'UTF_8');
+var_dump(strlen($binaryScalar), bin2hex($binaryScalar));
+var_dump(strlen($binaryArray[0]), bin2hex($binaryArray[0]));
 --EXPECT--
 string(4) "bird"
 array(3) {
@@ -20,3 +25,7 @@ array(3) {
 }
 NULL
 NULL
+int(1)
+string(2) "00"
+int(1)
+string(2) "00"

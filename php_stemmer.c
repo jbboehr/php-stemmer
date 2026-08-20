@@ -8,8 +8,6 @@
 #include "php_stemmer.h"
 #include "libstemmer.h"
 
-#define _add_next_index_string add_next_index_string
-
 static PHP_MINFO_FUNCTION(stemmer)
 {
     const char **list = sb_stemmer_list();
@@ -109,7 +107,7 @@ PHP_FUNCTION(stemmer_stem_word)
             if (Z_TYPE_P(data) == IS_STRING) {
                 stemmed = sb_stemmer_stem(stemmer, (const sb_symbol *) Z_STRVAL_P(data), Z_STRLEN_P(data));
                 if (stemmed) {
-                    _add_next_index_string(return_value, (const char *) stemmed);
+                    add_next_index_stringl(return_value, (const char *) stemmed, sb_stemmer_length(stemmer));
                 } else {
                     add_next_index_null(return_value);
                 }
@@ -122,7 +120,7 @@ PHP_FUNCTION(stemmer_stem_word)
         convert_to_string(arg);
         stemmed = sb_stemmer_stem(stemmer, (const sb_symbol *) Z_STRVAL_P(arg), Z_STRLEN_P(arg));
         if (stemmed) {
-            RETVAL_STRING((const char *) stemmed);
+            RETVAL_STRINGL((const char *) stemmed, sb_stemmer_length(stemmer));
         }
     }
     sb_stemmer_delete(stemmer);
