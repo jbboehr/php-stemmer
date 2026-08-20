@@ -6,6 +6,7 @@
 #include "Zend/zend_smart_str.h"
 #include "ext/standard/info.h"
 #include "php_stemmer.h"
+#include "stemmer_arginfo.h"
 #include "libstemmer.h"
 
 static PHP_MINFO_FUNCTION(stemmer)
@@ -35,22 +36,10 @@ static PHP_MINFO_FUNCTION(stemmer)
     smart_str_free(&language_list);
 }
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(stemmer_languages_args, 0, 0, IS_ARRAY, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(stemmer_stem_word_args, 0, 3, MAY_BE_ARRAY | MAY_BE_STRING | MAY_BE_NULL)
-    ZEND_ARG_INFO(0, arg)
-    ZEND_ARG_TYPE_INFO(0, lang, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO(0, enc, IS_STRING, 0)
-ZEND_END_ARG_INFO()
-
-static zend_function_entry stemmer_functions[] = {PHP_FE(stemmer_languages, stemmer_languages_args)
-                                                      PHP_FE(stemmer_stem_word, stemmer_stem_word_args) PHP_FE_END};
-
 zend_module_entry stemmer_module_entry = {
     STANDARD_MODULE_HEADER,
     PHP_STEMMER_EXTNAME,
-    stemmer_functions,
+    ext_functions,
     NULL,
     NULL,
     NULL,

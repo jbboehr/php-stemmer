@@ -8,6 +8,10 @@ var_dump(stemmer_stem_word('birds', 'english', 'UTF_8'));
 var_dump(stemmer_stem_word(array('birds', 'words', 123), 'english', 'UTF_8'));
 var_dump(stemmer_stem_word('birds', 'not-a-language', 'UTF_8'));
 var_dump(stemmer_stem_word(array('birds'), 'not-a-language', 'UTF_8'));
+var_dump(stemmer_stem_word('birds', 'english', 'not-an-encoding'));
+var_dump(stemmer_stem_word('', 'english', 'UTF_8'));
+var_dump(stemmer_stem_word(123, 'english', 'UTF_8'));
+var_dump(stemmer_stem_word(array('first' => 'birds', 9 => 'words'), 'english', 'UTF_8'));
 
 $binaryScalar = stemmer_stem_word("\0", 'english', 'UTF_8');
 $binaryArray = stemmer_stem_word(array("\0"), 'english', 'UTF_8');
@@ -25,6 +29,15 @@ array(3) {
 }
 NULL
 NULL
+NULL
+string(0) ""
+string(3) "123"
+array(2) {
+  [0]=>
+  string(4) "bird"
+  [1]=>
+  string(4) "word"
+}
 int(1)
 string(2) "00"
 int(1)

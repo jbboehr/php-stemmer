@@ -108,6 +108,14 @@
             clang-format.enable = true;
             clang-format.types_or = ["c" "c++"];
             clang-format.files = "\\.(c|h)$";
+            clang-format.excludes = ["^stemmer_arginfo\\.h$"];
+            generated-arginfo = {
+              enable = true;
+              name = "generated arginfo";
+              entry = "${pkgs.bash}/bin/bash .github/scripts/check-arginfo.sh";
+              files = "^(stemmer\\.stub\\.php|stemmer_arginfo\\.h)$";
+              pass_filenames = false;
+            };
             markdownlint.enable = true;
             markdownlint.excludes = ["LICENSE\.md"];
             markdownlint.settings.configuration = {

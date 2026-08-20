@@ -2,6 +2,7 @@
 !config.m4
 !m4/*.m4
 !php_stemmer.h
+!stemmer_arginfo.h
 !*.c
 !tests/*.phpt
 !tests/**/*.phpt

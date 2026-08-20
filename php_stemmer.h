@@ -7,9 +7,6 @@
 #define PHP_STEMMER_AUTHORS "© anno Domini nostri Jesu Christi 2008-2024 Javeline B.V., John Boehr, & contributors"
 #define PHP_STEMMER_EXTNAME "stemmer"
 
-PHP_FUNCTION(stemmer_languages);
-PHP_FUNCTION(stemmer_stem_word);
-
 extern zend_module_entry stemmer_module_entry;
 #define phpext_stemmer_ptr &stemmer_module_entry
 

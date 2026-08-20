@@ -10,6 +10,7 @@ var_dump($languages->getNumberOfRequiredParameters());
 var_dump((string) $languages->getReturnType());
 
 $stemWord = new ReflectionFunction('stemmer_stem_word');
+$parameters = $stemWord->getParameters();
 $returnTypes = array_map(
     static fn(ReflectionNamedType $type): string => $type->getName(),
     $stemWord->getReturnType()->getTypes()
@@ -18,6 +19,9 @@ sort($returnTypes);
 
 var_dump($stemWord->getNumberOfParameters());
 var_dump($stemWord->getNumberOfRequiredParameters());
+var_dump((string) $parameters[0]->getType());
+var_dump((string) $parameters[1]->getType());
+var_dump((string) $parameters[2]->getType());
 var_dump($returnTypes);
 --EXPECT--
 int(0)
@@ -25,6 +29,9 @@ int(0)
 string(5) "array"
 int(3)
 int(3)
+string(5) "mixed"
+string(6) "string"
+string(6) "string"
 array(3) {
   [0]=>
   string(5) "array"
