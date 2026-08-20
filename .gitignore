@@ -25,7 +25,6 @@ tests/*.diff
 tests/*.exp
 tests/*.php
 tests/*.sh
-tests/data-*
 Makefile
 Makefile.fragments
 Makefile.global

@@ -100,6 +100,27 @@ Run the extension's PHPT suite after building it:
 make test
 ```
 
+Run the full Snowball 2.2.0 compatibility corpus locally with Nix:
+
+```bash
+nix build -L .#corpus
+```
+
+This checks about 11 million words using PHP 8.5 and the matching pinned
+versions of `libstemmer` and `snowball-data`. The corpus is also a dedicated
+entry in the generated Nix CI matrix.
+
+Without Nix, build the extension against `libstemmer` 2.2.0, check out the
+matching corpus revision, and pass its path to the regular test command:
+
+```bash
+git clone https://github.com/snowballstem/snowball-data.git /path/to/snowball-data
+git -C /path/to/snowball-data checkout 0703f1d6a21802c3ff00c2c8b31bd255b74b2aec
+STEMMER_CORPUS_DIR=/path/to/snowball-data make test
+```
+
+`make test` skips the corpus when `STEMMER_CORPUS_DIR` is not set.
+
 Run the formatting, linting, and complete Nix build matrix with:
 
 ```bash

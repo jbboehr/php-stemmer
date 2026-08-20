@@ -1,3 +1,0 @@
-[submodule "snowball-data"]
-	path = snowball-data
-	url = https://github.com/snowballstem/snowball-data.git

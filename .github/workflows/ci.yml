@@ -189,8 +189,6 @@ jobs:
                     - debian
         steps:
             -   uses: actions/checkout@v7
-                with:
-                    submodules: recursive
             -   uses: docker/setup-buildx-action@v4
             -   uses: docker/build-push-action@v7
                 name: Build Docker Image
@@ -216,8 +214,6 @@ jobs:
                     - fedora
         steps:
             -   uses: actions/checkout@v7
-                with:
-                    submodules: recursive
             -   uses: docker/setup-buildx-action@v4
             -   uses: docker/build-push-action@v7
                 name: Build Docker Image

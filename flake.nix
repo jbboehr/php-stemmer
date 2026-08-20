@@ -24,10 +24,15 @@
       url = "github:fossar/nix-phps";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # snowball-data = {
-    #   url = "github:snowballstem/snowball-data";
-    #   flake = false;
-    # };
+    snowball = {
+      url = "github:snowballstem/snowball/v2.2.0";
+      flake = false;
+    };
+    snowball-data = {
+      # Last data revision before the matching libstemmer 2.2.0 release.
+      url = "github:snowballstem/snowball-data/0703f1d6a21802c3ff00c2c8b31bd255b74b2aec";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -39,7 +44,8 @@
     systems,
     nix-github-actions,
     phps,
-    # snowball-data,
+    snowball,
+    snowball-data,
     ...
   } @ args:
     flake-utils.lib.eachDefaultSystem (
@@ -71,11 +77,11 @@
         makePackage = {
           stdenv ? pkgs.stdenv,
           php ? pkgs.php,
+          libstemmer ? pkgs.libstemmer,
+          corpusData ? null,
         }:
           pkgs.callPackage ./nix/derivation.nix {
-            inherit src;
-            inherit stdenv php;
-            # inherit snowball-data;
+            inherit src stdenv php libstemmer corpusData;
             buildPecl = pkgs.callPackage (nixpkgs + "/pkgs/build-support/php/build-pecl.nix") {
               inherit php stdenv;
             };
@@ -178,6 +184,15 @@
         packages =
           packages'
           // {
+            corpus = makePackage {
+              php = matrix.php.php85;
+              stdenv = matrix.stdenv.gcc;
+              libstemmer = pkgs.libstemmer.overrideAttrs {
+                version = "2.2.0";
+                src = snowball;
+              };
+              corpusData = snowball-data;
+            };
             default = packages.php85-gcc;
           };
       in {

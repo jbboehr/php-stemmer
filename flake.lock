@@ -158,7 +158,43 @@
         "nix-github-actions": "nix-github-actions",
         "nixpkgs": "nixpkgs",
         "phps": "phps",
+        "snowball": "snowball",
+        "snowball-data": "snowball-data",
         "systems": "systems"
+      }
+    },
+    "snowball": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1636512138,
+        "narHash": "sha256-qXrypwv/I+5npvGHGsHveijoui0ZnoGYhskCfLkewVE=",
+        "owner": "snowballstem",
+        "repo": "snowball",
+        "rev": "48a67a2831005f49c48ec29a5837640e23e54e6b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "snowballstem",
+        "ref": "v2.2.0",
+        "repo": "snowball",
+        "type": "github"
+      }
+    },
+    "snowball-data": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1630997762,
+        "narHash": "sha256-0MwryzBK4weADCxpwDEc1lxOYT3M5vqvmrehe5YdtFo=",
+        "owner": "snowballstem",
+        "repo": "snowball-data",
+        "rev": "0703f1d6a21802c3ff00c2c8b31bd255b74b2aec",
+        "type": "github"
+      },
+      "original": {
+        "owner": "snowballstem",
+        "repo": "snowball-data",
+        "rev": "0703f1d6a21802c3ff00c2c8b31bd255b74b2aec",
+        "type": "github"
       }
     },
     "systems": {
