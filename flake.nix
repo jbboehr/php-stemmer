@@ -92,6 +92,13 @@
             checkSupport = true;
           };
 
+        php85DebugZts = pkgs.php85.override {
+          ztsSupport = true;
+          phpAttrsOverrides = final: prev: {
+            configureFlags = prev.configureFlags ++ ["--enable-debug"];
+          };
+        };
+
         pre-commit-check = git-hooks.lib.${system}.run {
           src = src';
           hooks = {
@@ -184,6 +191,10 @@
         packages =
           packages'
           // {
+            php85-debug-zts = makePackage {
+              php = php85DebugZts;
+              stdenv = matrix.stdenv.gcc;
+            };
             corpus = makePackage {
               php = matrix.php.php85;
               stdenv = matrix.stdenv.gcc;
