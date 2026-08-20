@@ -1,0 +1,29 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "jbboehr/php-stemmer",
+    "description": "PHP bindings for the Snowball stemming library",
+    "type": "php-ext",
+    "license": "BSD-3-Clause",
+    "keywords": [
+        "extension",
+        "php",
+        "snowball",
+        "stemmer"
+    ],
+    "homepage": "https://github.com/jbboehr/php-stemmer",
+    "support": {
+        "issues": "https://github.com/jbboehr/php-stemmer/issues",
+        "source": "https://github.com/jbboehr/php-stemmer"
+    },
+    "require": {
+        "php": ">=8.1 <8.6"
+    },
+    "php-ext": {
+        "extension-name": "stemmer",
+        "support-zts": true,
+        "support-nts": true,
+        "os-families-exclude": [
+            "windows"
+        ]
+    }
+}

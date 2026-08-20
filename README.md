@@ -24,7 +24,26 @@ version.
 
 ## Installation
 
-### Ubuntu
+### PIE
+
+Install the `libstemmer` development package first; PIE does not currently
+install this system dependency automatically:
+
+```bash
+# Debian or Ubuntu
+sudo apt-get install libstemmer-dev
+
+# Fedora
+sudo dnf install libstemmer-devel
+```
+
+Then install the extension with [PIE](https://github.com/php/pie):
+
+```bash
+pie install jbboehr/php-stemmer
+```
+
+### Manual build on Ubuntu
 
 ```bash
 sudo apt-get install libstemmer-dev

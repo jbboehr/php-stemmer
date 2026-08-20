@@ -137,6 +137,43 @@ jobs:
                 with:
                     parallel-finished: true
 
+    pie:
+        name: "PIE | PHP 8.5"
+        runs-on: ubuntu-latest
+        env:
+            PIE_VERSION: 1.4.10
+            PIE_SHA256: b88792235c8e80be568436d4cb043b49fd1869c89b64e83d23e2882ae19d70a8
+        steps:
+            -   uses: actions/checkout@v7
+
+            -   uses: awalsh128/cache-apt-pkgs-action@v1.6.3
+                with:
+                    packages: autoconf automake gcc libstemmer-dev libtool m4 make pkg-config
+                    version: 1
+
+            -   name: Install PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    coverage: "none"
+                    php-version: "8.5"
+                    tools: composer
+
+            -   name: Validate Composer Metadata
+                run: composer validate --strict
+
+            -   name: Download PIE
+                run: |
+                    curl --fail --location --silent --show-error \
+                        --output /tmp/pie.phar \
+                        "https://github.com/php/pie/releases/download/${PIE_VERSION}/pie.phar"
+                    echo "${PIE_SHA256}  /tmp/pie.phar" | sha256sum --check
+
+            -   name: Register Local PIE Package
+                run: php /tmp/pie.phar repository:add path .
+
+            -   name: Build Extension with PIE
+                run: php /tmp/pie.phar build 'jbboehr/php-stemmer:*@dev'
+
     nix-matrix:
         runs-on: ubuntu-latest
         outputs:

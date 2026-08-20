@@ -133,6 +133,13 @@
             clang-format.types_or = ["c" "c++"];
             clang-format.files = "\\.(c|h)$";
             clang-format.excludes = ["^stemmer_arginfo\\.h$"];
+            composer-validate = {
+              enable = true;
+              name = "Composer metadata";
+              entry = "${pkgs.phpPackages.composer}/bin/composer validate --strict";
+              files = "^composer\\.json$";
+              pass_filenames = false;
+            };
             generated-arginfo = {
               enable = true;
               name = "generated arginfo";
