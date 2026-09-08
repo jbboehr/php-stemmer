@@ -92,6 +92,11 @@
             checkSupport = true;
           };
 
+        windows = import ./nix/windows {
+          inherit nixpkgs system src snowball;
+          corpusData = snowball-data;
+        };
+
         php85DebugZts = pkgs.php85.override {
           ztsSupport = true;
           phpAttrsOverrides = final: prev: {
@@ -248,13 +253,14 @@
             default = packages.php85-gcc;
           };
       in {
-        inherit packages;
+        packages = packages // windows.packages;
 
         devShells = builtins.mapAttrs (name: package: makeDevShell package) packages;
 
         checks =
           {inherit pre-commit-check;}
-          // (builtins.mapAttrs (name: package: makeCheck package) packages);
+          // (builtins.mapAttrs (name: package: makeCheck package) packages)
+          // windows.checks;
 
         formatter = pkgs.alejandra;
       }
