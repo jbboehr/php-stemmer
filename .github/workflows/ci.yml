@@ -181,6 +181,11 @@ jobs:
         steps:
             -   uses: actions/checkout@v7
             -   uses: cachix/install-nix-action@v31
+            -   name: Cache Nix store for matrix generation
+                uses: nix-community/cache-nix-action@v7
+                with:
+                    primary-key: nix-matrix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.nix', '**/flake.lock', '.github/workflows/ci.yml') }}
+                    restore-prefixes-first-match: nix-matrix-${{ runner.os }}-${{ runner.arch }}-
             -   id: set-matrix
                 name: Generate Nix Matrix
                 run: |
@@ -202,6 +207,13 @@ jobs:
                 with:
                     nix_path: nixpkgs=channel:nixos-26.05
                     extra_nix_config: "system-features = nixos-test benchmark big-parallel kvm"
+
+            -   name: Cache Nix store for build target
+                uses: nix-community/cache-nix-action@v7
+                with:
+                    # Separate matrix targets so concurrent jobs can save their own dependencies.
+                    primary-key: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ hashFiles('**/*.nix', '**/flake.lock', '.github/workflows/ci.yml') }}
+                    restore-prefixes-first-match: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-
 
             -   name: Use nix-phps Binary Cache
                 uses: cachix/cachix-action@v17
