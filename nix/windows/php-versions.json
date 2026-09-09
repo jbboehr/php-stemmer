@@ -1,0 +1,62 @@
+{
+  "8.1": {
+    "version": "8.1.34",
+    "compiler": "vs16",
+    "nts": {
+      "devel": "d5981b1336b77de96461c0a7b5a54dda8fb7aed03df29a17c634f36219eeede4",
+      "runtime": "9cfe246cb144076c16f5913a3ef88a474c3dd7e60f0f0c8bb95faf68674016cc"
+    },
+    "ts": {
+      "devel": "65c01d508cac78f2f317a61f1ead0df14cf79a2233aad70311d44cf980fd8889",
+      "runtime": "8e17e0804fe48d3a032c9bef16f0f922996e0b1b237061b7ce94485394db5d1b"
+    }
+  },
+  "8.2": {
+    "version": "8.2.33",
+    "compiler": "vs16",
+    "nts": {
+      "devel": "d4d0da6e6f1ad3f9e058262261fc43d7fa329b212207e4bfb2a39ad0b39ee891",
+      "runtime": "d0bd189522fa50255ee94ed4b340ed4330f5ae33a90a74205275b0f0b221d388"
+    },
+    "ts": {
+      "devel": "46c00fc49b8cf6c35a4a8b5269114b1da90ef3a001f5ee1cd577f7c12ab6aad9",
+      "runtime": "7d2568dfaad6ac1391e57994f52c8aed835baf9e6d89f4328770e2843311291c"
+    }
+  },
+  "8.3": {
+    "version": "8.3.33",
+    "compiler": "vs16",
+    "nts": {
+      "devel": "49fa1880cea4233b8c6128c84f01a1d5fc4de7e9c97854b1b832eef37f558a1c",
+      "runtime": "534399107056313246f424adbbb7937337e40fbbf6aa7bc26287ba9cfd2e4a2a"
+    },
+    "ts": {
+      "devel": "d58cedfa76b74b49f88ee54d25426700a27dad76dbad4732440cf28ca8267a7c",
+      "runtime": "b089e370ff99eb7038b0d22617dec2f3a1d0e93ca26b11fd218f2f5b60422271"
+    }
+  },
+  "8.4": {
+    "version": "8.4.25",
+    "compiler": "vs17",
+    "nts": {
+      "devel": "55fd07f549c0494cfde2827dfe90ce128ff0359df7dbc76f7617ed1adcdefa48",
+      "runtime": "43a8f67ed2e5223fafb21293c85976361808855405278cef2cf3037c3ae2529c"
+    },
+    "ts": {
+      "devel": "75e4555ef32cb1524968f3019eb4567c06e89be13b1641148375fee99658b8b4",
+      "runtime": "2cf521fb6bcb45b634c7e9a7ab2afb6d41698b987bbc73c4975d90a065e0f16c"
+    }
+  },
+  "8.5": {
+    "version": "8.5.10",
+    "compiler": "vs17",
+    "nts": {
+      "devel": "b277dafab9654b23dec28fdebe47385248fdd33bbe8ecdc33b8681ef1b5c7788",
+      "runtime": "22ec430195984d233eb9e62c637a945bbcda06efca2f392d9d96d62c6acd34f8"
+    },
+    "ts": {
+      "devel": "0031d279f13f21e81fd62f9a98e919f28b1875ba457916d60daed85586e479dd",
+      "runtime": "a6bc8b2f3d7bfb397ccb973db2f959e61e530e0986c9cea262dd4a317ec599d8"
+    }
+  }
+}

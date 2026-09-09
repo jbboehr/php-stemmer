@@ -60,7 +60,7 @@ in
     "$TEST_PHP_EXECUTABLE" -n -d extension=C:/php/ext/php_stemmer.dll -r '
       if (PHP_OS_FAMILY !== "Windows" || PHP_INT_SIZE !== 8
           || PHP_VERSION !== "${package.php.version}"
-          || PHP_ZTS !== ${builtins.toJSON package.php.zts}
+          || (bool) PHP_ZTS !== ${builtins.toJSON package.php.zts}
           || !extension_loaded("stemmer")) {
         fwrite(STDERR, "Windows PHP configuration or stemmer loading failed\n");
         exit(1);

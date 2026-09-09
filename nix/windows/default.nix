@@ -15,15 +15,20 @@
   };
   sdk = pkgs.windows.sdk;
   libstemmer = pkgs.callPackage ./libstemmer.nix {inherit sdk snowball;};
-  makePackage = zts:
+  makePackage = minor: zts:
     pkgs.callPackage ./extension.nix {
       inherit src sdk libstemmer;
-      php = pkgs.callPackage ./php.nix {inherit zts;};
+      php = pkgs.callPackage ./php.nix {inherit minor zts;};
     };
-  packages = {
-    php85-windows-nts = makePackage false;
-    php85-windows-ts = makePackage true;
-  };
+  packages = builtins.listToAttrs (pkgs.lib.concatMap (minor:
+    map (zts: {
+      name = "php${builtins.replaceStrings ["."] [""] minor}-windows-${
+        if zts
+        then "ts"
+        else "nts"
+      }";
+      value = makePackage minor zts;
+    }) [false true]) (builtins.attrNames (builtins.fromJSON (builtins.readFile ./php-versions.json))));
 in
   if system == "x86_64-linux"
   then {

@@ -3,8 +3,10 @@
   runCommand,
   unzip,
   zts,
+  minor ? "8.5",
 }: let
-  version = "8.5.10";
+  release = (builtins.fromJSON (builtins.readFile ./php-versions.json)).${minor};
+  inherit (release) version compiler;
   threadSafety =
     if zts
     then "ts"
@@ -15,21 +17,15 @@
     else "-nts";
   baseUrl = "https://downloads.php.net/~windows/releases/archives";
   develArchive = fetchurl {
-    url = "${baseUrl}/php-devel-pack-${version}${suffix}-Win32-vs17-x64.zip";
-    sha256 =
-      if zts
-      then "0031d279f13f21e81fd62f9a98e919f28b1875ba457916d60daed85586e479dd"
-      else "b277dafab9654b23dec28fdebe47385248fdd33bbe8ecdc33b8681ef1b5c7788";
+    url = "${baseUrl}/php-devel-pack-${version}${suffix}-Win32-${compiler}-x64.zip";
+    sha256 = release.${threadSafety}.devel;
   };
   runtimeArchive = fetchurl {
-    url = "${baseUrl}/php-${version}${suffix}-Win32-vs17-x64.zip";
-    sha256 =
-      if zts
-      then "a6bc8b2f3d7bfb397ccb973db2f959e61e530e0986c9cea262dd4a317ec599d8"
-      else "22ec430195984d233eb9e62c637a945bbcda06efca2f392d9d96d62c6acd34f8";
+    url = "${baseUrl}/php-${version}${suffix}-Win32-${compiler}-x64.zip";
+    sha256 = release.${threadSafety}.runtime;
   };
 in {
-  inherit version zts threadSafety;
+  inherit version compiler minor zts threadSafety;
   importLibrary =
     if zts
     then "php8ts.lib"
@@ -39,10 +35,15 @@ in {
       nativeBuildInputs = [unzip];
     } ''
       unzip -q ${develArchive}
-      mv php-${version}-devel-vs17-x64 "$out"
+      mv php-${version}-devel-${compiler}-x64 "$out"
       # Windows tolerates this include's casing; Linux filesystems do not.
       substituteInPlace "$out/include/main/streams/php_stream_transport.h" \
         --replace-fail '<Ws2tcpip.h>' '<ws2tcpip.h>'
+      # Older headers predate clang-cl's vectorcall support. Match the ABI of
+      # the official MSVC runtime without changing unrelated compiler guards.
+      substituteInPlace "$out/include/Zend/zend_portability.h" \
+        --replace-quiet '#elif defined(_MSC_VER) && _MSC_VER >= 1800 && !defined(__clang__)' \
+                        '#elif defined(_MSC_VER) && _MSC_VER >= 1800'
     '';
   runtime =
     runCommand "php-${version}-${threadSafety}-windows-x64" {

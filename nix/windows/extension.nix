@@ -14,7 +14,7 @@ runCommand "php-stemmer-${php.version}-windows-x64-${php.threadSafety}" {
   cp ${src}/php_stemmer.c ${src}/php_stemmer.h ${src}/stemmer_arginfo.h .
   clang-cl --target=x86_64-pc-windows-msvc /nologo /Brepro /MD /O2 /TC /utf-8 \
     /vctoolsdir ${sdk}/crt /winsdkdir ${sdk}/sdk \
-    /c php_stemmer.c /Fostemmer.obj \
+    /c php_stemmer.c /Fostemmer.obj /FIintrin.h \
     /I${php.headers}/include /I${php.headers}/include/main \
     /I${php.headers}/include/Zend /I${php.headers}/include/TSRM \
     /I${php.headers}/include/ext /I${libstemmer}/include \

@@ -48,7 +48,7 @@
     snowball-data,
     ...
   } @ args:
-    flake-utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachSystem ((import systems) ++ ["aarch64-darwin"]) (
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
         lib = pkgs.lib;
@@ -69,6 +69,7 @@
               .gitignore
               *.md
               *.nix
+              /nix/
               flake.*
             '';
           };
@@ -94,6 +95,12 @@
 
         windows = import ./nix/windows {
           inherit nixpkgs system src snowball;
+          corpusData = snowball-data;
+        };
+
+        release = import ./nix/release {
+          inherit pkgs system src snowball windows;
+          phps = matrix.php;
           corpusData = snowball-data;
         };
 
@@ -253,34 +260,23 @@
             default = packages.php85-gcc;
           };
       in {
-        packages = packages // windows.packages;
+        packages = lib.optionalAttrs pkgs.stdenv.isLinux (packages // windows.packages) // release.packages;
 
-        devShells = builtins.mapAttrs (name: package: makeDevShell package) packages;
+        devShells = lib.optionalAttrs pkgs.stdenv.isLinux (builtins.mapAttrs (name: package: makeDevShell package) packages);
 
         checks =
-          {inherit pre-commit-check;}
-          // (builtins.mapAttrs (name: package: makeCheck package) packages)
-          // windows.checks;
+          lib.optionalAttrs pkgs.stdenv.isLinux ({inherit pre-commit-check;}
+            // (builtins.mapAttrs (name: package: makeCheck package) packages)
+            // windows.checks)
+          // release.checks;
 
         formatter = pkgs.alejandra;
       }
     )
     // {
-      githubActions.matrix.include = let
-        cleanFn = v:
-          v
-          // {
-            attr = builtins.replaceStrings ["\""] [""] v.attr;
-            name = builtins.replaceStrings ["githubActions." "checks." "x86_64-linux." "\""] ["" "" "" ""] v.attr;
-          };
-      in
-        builtins.filter (entry: entry.name != "default")
-        (builtins.map cleanFn
-          (nix-github-actions.lib.mkGithubMatrix {
-            attrPrefix = "checks";
-            checks = nixpkgs.lib.getAttrs ["x86_64-linux"] self.checks;
-          })
-          .matrix
-          .include);
+      githubActions = import ./nix/github-actions.nix {
+        inherit nix-github-actions;
+        checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-darwin"] self.checks;
+      };
     };
 }

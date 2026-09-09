@@ -5,29 +5,40 @@
 [![Coveralls](https://coveralls.io/repos/github/jbboehr/php-stemmer/badge.svg?branch=master)](https://coveralls.io/github/jbboehr/php-stemmer?branch=master)
 
 This PHP extension provides stemming for a variety of languages through
-Dr. M.F. Porter's Snowball API. It uses the system `libstemmer` library and
+Dr. M.F. Porter's Snowball API. It uses Snowball's `libstemmer` library and
 offers a small API for discovering languages and stemming words.
 
 This is a maintained version of the original
-[php-stemmer](https://code.google.com/p/php-stemmer/) project. The bundled
-copy of `libstemmer` has been removed and the extension's functions use a
-`stemmer_` prefix.
+[php-stemmer](https://code.google.com/p/php-stemmer/) project. The extension's
+functions use a `stemmer_` prefix.
 
 ## Requirements
 
 - PHP 8.1 through PHP 8.5
-- A C compiler and the PHP development tools
-- The development files for `libstemmer`
+- Source builds also need a C compiler, PHP development tools, and the
+  development files for the system `libstemmer` library
 
-The available languages and algorithms depend on the installed `libstemmer`
-version.
+Prebuilt PIE downloads include statically linked Snowball 2.2.0. For source
+builds, the available languages and algorithms depend on the system
+`libstemmer` version.
 
 ## Installation
 
 ### PIE
 
-Install the `libstemmer` development package first; PIE does not currently
-install this system dependency automatically:
+Install the extension with [PIE](https://github.com/php/pie):
+
+```bash
+pie install jbboehr/php-stemmer
+```
+
+The prebuilt download targets are non-debug PHP 8.1–8.5: x64 Linux (glibc or
+musl) and arm64 macOS with NTS, and x64 Windows with NTS or ZTS. When available for the
+selected release, these downloads do not require a system `libstemmer` installation.
+
+On Unix, PIE falls back to a source build when no matching binary is available.
+Install the source-build requirements first; PIE does not install the system
+`libstemmer` dependency automatically:
 
 ```bash
 # Debian or Ubuntu
@@ -35,12 +46,6 @@ sudo apt-get install libstemmer-dev
 
 # Fedora
 sudo dnf install libstemmer-devel
-```
-
-Then install the extension with [PIE](https://github.com/php/pie):
-
-```bash
-pie install jbboehr/php-stemmer
 ```
 
 ### Manual build on Ubuntu
@@ -160,13 +165,6 @@ docker build \
     .
 DOCKER_NAME=debian .github/scripts/docker.sh
 ```
-
-## Releasing
-
-Before creating a release, update `PHP_STEMMER_VERSION` and
-`PHP_STEMMER_RELEASE` in `php_stemmer.h`, run `nix flake check -L`, and verify
-the GitHub Actions workflow succeeds. Releases are tagged from the tested
-commit; there is no automated publishing workflow in this repository.
 
 ## License
 

@@ -1,0 +1,52 @@
+name: Release
+
+on:
+    workflow_run:
+        workflows: [ci]
+        types: [completed]
+
+permissions:
+    contents: read
+    actions: read
+
+jobs:
+    publish:
+        if: >-
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'push' &&
+            github.event.workflow_run.head_repository.full_name == github.repository &&
+            startsWith(github.event.workflow_run.head_branch, 'v')
+        concurrency:
+            group: publish-release-${{ github.event.workflow_run.head_branch }}
+            cancel-in-progress: false
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            actions: read
+        env:
+            GH_TOKEN: ${{ github.token }}
+            TAG: ${{ github.event.workflow_run.head_branch }}
+            CI_SHA: ${{ github.event.workflow_run.head_sha }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: refs/tags/${{ github.event.workflow_run.head_branch }}
+                  persist-credentials: false
+            - name: Check the tag matches the tested commit and extension version
+              run: |
+                  [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+                  test "$(git rev-parse HEAD)" = "$CI_SHA"
+                  version=$(sed -n 's/^#define PHP_STEMMER_VERSION "\([^"]*\)"/\1/p' php_stemmer.h)
+                  test "$TAG" = "v$version"
+            - uses: actions/download-artifact@v8
+              with:
+                  pattern: pie-*
+                  path: artifacts
+                  merge-multiple: true
+                  run-id: ${{ github.event.workflow_run.id }}
+                  github-token: ${{ github.token }}
+            - name: Publish the tested archives
+              working-directory: artifacts
+              run: |
+                  sha256sum ./*.zip > SHA256SUMS
+                  gh release create "$TAG" ./*.zip SHA256SUMS --verify-tag --generate-notes --repo "$GITHUB_REPOSITORY"

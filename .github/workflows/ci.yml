@@ -6,6 +6,8 @@ on:
             - master
             - develop
             - ci
+        tags:
+            - "v*"
     pull_request:
         branches:
             - master
@@ -178,13 +180,14 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
+            windows: ${{ steps.set-matrix.outputs.windows }}
         steps:
             -   uses: actions/checkout@v7
             -   uses: cachix/install-nix-action@v31
             -   name: Cache Nix store for matrix generation
                 uses: nix-community/cache-nix-action@v7
                 with:
-                    primary-key: nix-matrix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.nix', '**/flake.lock', '.github/workflows/ci.yml') }}
+                    primary-key: nix-matrix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.nix', '**/flake.lock', 'nix/**', '.github/workflows/ci.yml') }}
                     restore-prefixes-first-match: nix-matrix-${{ runner.os }}-${{ runner.arch }}-
             -   id: set-matrix
                 name: Generate Nix Matrix
@@ -192,6 +195,8 @@ jobs:
                     set -Eeu
                     matrix="$(nix eval --json '.#githubActions.matrix')"
                     echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+                    windows=$(jq -c '{include: [.include[] | select(.platform == "windows-nts" or .platform == "windows-ts")]}' <<< "$matrix")
+                    echo "windows=$windows" >> "$GITHUB_OUTPUT"
 
     nix:
         name: "nix (${{ matrix.name }})"
@@ -203,6 +208,12 @@ jobs:
         steps:
             -   uses: actions/checkout@v7
 
+            -   uses: shivammathur/setup-php@v2
+                if: matrix.platform == 'darwin'
+                with:
+                    php-version: ${{ matrix.php }}
+                    coverage: none
+
             -   uses: cachix/install-nix-action@v31
                 with:
                     nix_path: nixpkgs=channel:nixos-26.05
@@ -212,7 +223,7 @@ jobs:
                 uses: nix-community/cache-nix-action@v7
                 with:
                     # Separate matrix targets so concurrent jobs can save their own dependencies.
-                    primary-key: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ hashFiles('**/*.nix', '**/flake.lock', '.github/workflows/ci.yml') }}
+                    primary-key: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ hashFiles('**/*.nix', '**/flake.lock', 'nix/**', '.github/workflows/ci.yml') }}
                     restore-prefixes-first-match: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-
 
             -   name: Use nix-phps Binary Cache
@@ -222,6 +233,61 @@ jobs:
                     skipPush: true
 
             -   run: nix build -L ".#${{ matrix.attr }}"
+
+            -   name: Test extracted release archive outside Nix
+                if: matrix.release && !startsWith(matrix.platform, 'windows-')
+                env:
+                    PHP_MINOR: ${{ matrix.php }}
+                    PLATFORM: ${{ matrix.platform }}
+                run: bash .github/scripts/test-release.sh result "$PHP_MINOR" "$PLATFORM"
+
+            -   uses: actions/upload-artifact@v7
+                if: matrix.release
+                with:
+                    name: ${{ matrix.artifact }}
+                    path: |
+                        result/*.zip
+                        result/test/run-tests.php
+                    if-no-files-found: error
+                    retention-days: 14
+                    overwrite: true
+
+    windows-release:
+        name: "Native Windows | PHP ${{ matrix.php }} | ${{ matrix.ts }}"
+        needs: [nix-matrix, nix]
+        runs-on: windows-latest
+        strategy:
+            fail-fast: false
+            matrix: ${{ fromJSON(needs.nix-matrix.outputs.windows) }}
+        steps:
+            - uses: actions/checkout@v7
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  coverage: none
+              env:
+                  phpts: ${{ matrix.ts }}
+            - uses: actions/download-artifact@v8
+              with:
+                  name: ${{ matrix.artifact }}
+                  path: artifact
+            - name: Load DLL and run PHPT tests
+              shell: pwsh
+              env:
+                  PHP_MINOR: ${{ matrix.php }}
+                  PHP_TS: ${{ matrix.ts }}
+                  NO_INTERACTION: 1
+                  REPORT_EXIT_STATUS: 1
+              run: |
+                  $archive = Get-ChildItem artifact/*.zip
+                  Expand-Archive $archive.FullName -DestinationPath extension
+                  $dll = (Get-ChildItem extension/*.dll).FullName.Replace('\', '/')
+                  php -n -d "extension=$dll" .github/scripts/check-release.php $env:PHP_MINOR $env:PHP_TS Windows
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                  $env:TEST_PHP_ARGS = "-d extension=$dll"
+                  # The complete Snowball corpus also runs in the Nix/Wine checks.
+                  php -n artifact/test/run-tests.php -n -q --show-diff tests/stemmer_arginfo.phpt tests/stemmer_languages.phpt tests/stemmer_phpinfo.phpt tests/stemmer_stem_word.phpt
+                  exit $LASTEXITCODE
 
     docker:
         runs-on: ubuntu-latest
