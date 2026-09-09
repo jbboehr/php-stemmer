@@ -21,6 +21,7 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
+            php-matrix: ${{ steps.set-matrix.outputs.php-matrix }}
         steps:
             -   uses: actions/checkout@v7
             -   uses: cachix/install-nix-action@v31
@@ -35,11 +36,35 @@ jobs:
                     set -Eeu
                     matrix="$(nix eval --json '.#githubActions.matrix')"
                     echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+                    echo "php-matrix=$(nix eval --json '.#githubActions.phpMatrix')" >> "$GITHUB_OUTPUT"
+
+    nix-php:
+        name: "Cache PHP (${{ matrix.system }})"
+        needs: nix-matrix
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix: ${{ fromJSON(needs.nix-matrix.outputs.php-matrix) }}
+        steps:
+            -   uses: actions/checkout@v7
+            -   uses: cachix/install-nix-action@v31
+            -   name: Cache PHP runtimes and headers
+                uses: nix-community/cache-nix-action@v7
+                with:
+                    primary-key: ${{ matrix.cache-key }}
+                    restore-prefixes-first-match: nix-php-${{ matrix.system }}-
+                    # The result link keeps PHP alive while unused build tools are collected.
+                    gc-max-store-size: 0
+            -   uses: cachix/cachix-action@v17
+                with:
+                    name: fossar
+                    skipPush: true
+            -   run: nix build -L ".#packages.${{ matrix.system }}.ci-php"
 
     nix:
         name: "nix (${{ matrix.name }})"
         runs-on: ${{ matrix.os }}
-        needs: nix-matrix
+        needs: [nix-matrix, nix-php]
         strategy:
             fail-fast: false
             matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
@@ -51,12 +76,11 @@ jobs:
                     nix_path: nixpkgs=channel:nixos-26.05
                     extra_nix_config: "system-features = nixos-test benchmark big-parallel kvm"
 
-            -   name: Cache Nix store for build target
+            -   name: Restore PHP runtimes and headers
                 uses: nix-community/cache-nix-action@v7
                 with:
-                    # Separate matrix targets so concurrent jobs can save their own dependencies.
-                    primary-key: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-${{ hashFiles('**/*.nix', '**/flake.lock', 'nix/**', '.github/workflows/ci.yml') }}
-                    restore-prefixes-first-match: nix-build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.name }}-
+                    primary-key: ${{ matrix.cache-key }}
+                    save: false
 
             -   name: Use nix-phps Binary Cache
                 uses: cachix/cachix-action@v17

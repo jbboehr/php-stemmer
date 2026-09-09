@@ -246,7 +246,14 @@
             default = packages.php85-gcc;
           };
       in {
-        packages = lib.optionalAttrs pkgs.stdenv.isLinux (packages // windows.packages) // release.packages;
+        packages =
+          lib.optionalAttrs pkgs.stdenv.isLinux (packages // windows.packages)
+          // release.packages
+          // {
+            ci-php = pkgs.callPackage ./nix/ci/php-cache.nix {
+              phps = release.phpRuntimes ++ lib.optional pkgs.stdenv.isLinux php85DebugZts;
+            };
+          };
 
         devShells = lib.optionalAttrs pkgs.stdenv.isLinux (builtins.mapAttrs (name: package: makeDevShell package) packages);
 
@@ -263,6 +270,7 @@
     // {
       githubActions = import ./nix/github-actions.nix {
         inherit nix-github-actions;
+        inherit (self) packages;
         checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-darwin"] self.checks;
       };
     };

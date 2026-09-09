@@ -23,6 +23,14 @@
       libcs = ["glibc" "musl"];
     };
   makeArchive = args: pkgs.callPackage ./archive.nix ({inherit src snowball corpusData;} // args);
+  muslPhps = lib.mapAttrs (name: _:
+    pkgs.callPackage ./musl-php.nix {
+      php =
+        if name == "php81"
+        then php81Musl
+        else pkgs.pkgsMusl.${name};
+    })
+  phps;
   makeUnixArchive = phpName: php: libc: let
     buildPkgs =
       if libc == "musl"
@@ -42,13 +50,7 @@
       inherit php;
       testPhp =
         if libc == "musl"
-        then
-          pkgs.callPackage ./musl-php.nix {
-            php =
-              if phpName == "php81"
-              then php81Musl
-              else pkgs.pkgsMusl.${phpName};
-          }
+        then muslPhps.${phpName}
         else php;
       binary = "${extension}/stemmer.so";
       member = "stemmer.so";
@@ -82,5 +84,6 @@
   );
 in {
   inherit packages;
+  phpRuntimes = builtins.attrValues phps ++ lib.optionals pkgs.stdenv.isLinux (builtins.attrValues muslPhps);
   checks = packages;
 }
