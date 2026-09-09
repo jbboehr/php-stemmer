@@ -10,14 +10,15 @@ permissions:
     actions: read
 
 jobs:
-    publish:
+    draft:
         if: >-
             github.event.workflow_run.conclusion == 'success' &&
             github.event.workflow_run.event == 'push' &&
             github.event.workflow_run.head_repository.full_name == github.repository &&
-            startsWith(github.event.workflow_run.head_branch, 'v')
+            (startsWith(github.event.workflow_run.head_branch, 'v') ||
+             startsWith(github.event.workflow_run.head_branch, 'release/v'))
         concurrency:
-            group: publish-release-${{ github.event.workflow_run.head_branch }}
+            group: draft-release
             cancel-in-progress: false
         runs-on: ubuntu-latest
         permissions:
@@ -25,19 +26,26 @@ jobs:
             actions: read
         env:
             GH_TOKEN: ${{ github.token }}
-            TAG: ${{ github.event.workflow_run.head_branch }}
+            REF_NAME: ${{ github.event.workflow_run.head_branch }}
             CI_SHA: ${{ github.event.workflow_run.head_sha }}
         steps:
             - uses: actions/checkout@v7
               with:
-                  ref: refs/tags/${{ github.event.workflow_run.head_branch }}
+                  ref: ${{ github.event.workflow_run.head_sha }}
                   persist-credentials: false
-            - name: Check the tag matches the tested commit and extension version
+            - name: Check the release ref and extension version
               run: |
-                  [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-                  test "$(git rev-parse HEAD)" = "$CI_SHA"
+                  [[ "$REF_NAME" =~ ^(release/)?v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+                  TAG=${REF_NAME#release/}
                   version=$(sed -n 's/^#define PHP_STEMMER_VERSION "\([^"]*\)"/\1/p' php_stemmer.h)
                   test "$TAG" = "v$version"
+                  ref="refs/tags/$TAG"
+                  if [[ "$REF_NAME" == release/* ]]; then
+                    ref="refs/heads/$REF_NAME"
+                  fi
+                  git fetch --depth=1 origin "$ref"
+                  test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$CI_SHA"
+                  echo "TAG=$TAG" >> "$GITHUB_ENV"
             - uses: actions/download-artifact@v8
               with:
                   pattern: pie-*
@@ -45,8 +53,19 @@ jobs:
                   merge-multiple: true
                   run-id: ${{ github.event.workflow_run.id }}
                   github-token: ${{ github.token }}
-            - name: Publish the tested archives
+            - name: Draft the release with the tested archives
               working-directory: artifacts
               run: |
                   sha256sum ./*.zip > SHA256SUMS
-                  gh release create "$TAG" ./*.zip SHA256SUMS --verify-tag --generate-notes --repo "$GITHUB_REPOSITORY"
+                  draft=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
+                    --jq ".[] | select(.tag_name == \"$TAG\") | .draft")
+                  case "$draft" in
+                    false) echo "$TAG is already published"; exit 0 ;;
+                    "") ;;
+                    *) echo "Delete the existing $TAG draft before recreating it" >&2; exit 1 ;;
+                  esac
+                  if [[ "$REF_NAME" == release/* ]]; then
+                    tag_ref=$(git ls-remote --tags origin "refs/tags/$TAG")
+                    test -z "$tag_ref"
+                  fi
+                  gh release create "$TAG" ./*.zip SHA256SUMS --draft --target "$CI_SHA" --generate-notes --repo "$GITHUB_REPOSITORY"

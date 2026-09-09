@@ -6,6 +6,7 @@ on:
             - master
             - develop
             - ci
+            - "release/v*"
         tags:
             - "v*"
     pull_request:

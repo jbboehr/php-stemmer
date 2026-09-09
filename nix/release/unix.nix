@@ -44,7 +44,7 @@ stdenv.mkDerivation {
     ${lib.optionalString stdenv.isDarwin ''
       test "$(lipo -archs "$out/stemmer.so")" = arm64
       otool -L "$out/stemmer.so"
-      if otool -l "$out/stemmer.so" | grep -q /nix/store; then
+      if otool -X -l "$out/stemmer.so" | grep -q /nix/store; then
         echo "Mach-O contains a Nix runtime dependency" >&2
         exit 1
       fi
