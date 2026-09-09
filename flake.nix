@@ -101,7 +101,13 @@
         release = import ./nix/release {
           inherit pkgs system src snowball windows;
           phps = matrix.php;
+          php81Musl = (pkgs.pkgsMusl.extend phps.overlays.default).php81;
           corpusData = snowball-data;
+        };
+
+        ci = import ./nix/ci {
+          inherit pkgs src packages;
+          phps = matrix.php;
         };
 
         php85DebugZts = pkgs.php85.override {
@@ -111,28 +117,8 @@
           };
         };
 
-        # Keep the musl lane CLI-only so CI does not rebuild PHP's full
-        # extension set for a second libc.
-        php85Musl = pkgs.pkgsMusl.php85.unwrapped.buildEnv {
-          inherit
-            (pkgs)
-            autoconf
-            automake
-            bison
-            flex
-            libtool
-            pkg-config
-            re2c
-            ;
-          cgiSupport = false;
-          fpmSupport = false;
-          pearSupport = false;
-          pharSupport = false;
-          phpdbgSupport = false;
-          argon2Support = false;
-          systemdSupport = false;
-          valgrindSupport = false;
-          extensions = _: [];
+        php85Musl = pkgs.callPackage ./nix/release/musl-php.nix {
+          php = pkgs.pkgsMusl.php85;
         };
 
         pre-commit-check = git-hooks.lib.${system}.run {
@@ -267,7 +253,8 @@
         checks =
           lib.optionalAttrs pkgs.stdenv.isLinux ({inherit pre-commit-check;}
             // (builtins.mapAttrs (name: package: makeCheck package) packages)
-            // windows.checks)
+            // windows.checks
+            // ci)
           // release.checks;
 
         formatter = pkgs.alejandra;

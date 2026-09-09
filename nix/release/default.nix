@@ -2,6 +2,7 @@
   pkgs,
   system,
   phps,
+  php81Musl,
   src,
   snowball,
   corpusData,
@@ -39,6 +40,16 @@
     platform = "${unixTarget.os}${lib.optionalString (unixTarget.os == "linux") "-${libc}"}";
     package = makeArchive {
       inherit php;
+      testPhp =
+        if libc == "musl"
+        then
+          pkgs.callPackage ./musl-php.nix {
+            php =
+              if phpName == "php81"
+              then php81Musl
+              else pkgs.pkgsMusl.${phpName};
+          }
+        else php;
       binary = "${extension}/stemmer.so";
       member = "stemmer.so";
       filename = "php_stemmer-${version}_php${minor}-${unixTarget.arch}-${unixTarget.os}-${libc}-nts";

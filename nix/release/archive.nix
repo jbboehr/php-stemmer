@@ -1,5 +1,6 @@
 {
   runCommand,
+  lib,
   python3,
   unzip,
   binary,
@@ -10,6 +11,7 @@
   php,
   corpusData,
   ci,
+  testPhp ? null,
 }:
 runCommand filename {
   nativeBuildInputs = [python3 unzip];
@@ -42,4 +44,25 @@ runCommand filename {
           archive.writestr(entry, Path(source).read_bytes())
   PY
   unzip -t "$out/${filename}.zip"
+  ${lib.optionalString (testPhp != null) ''
+    unzip -q "$out/${filename}.zip" -d extracted
+    cp -r ${src}/tests tests
+    chmod -R u+w tests
+    mkdir -p .github/scripts
+    cp ${../../.github/scripts/check-release.php} .github/scripts/check-release.php
+    cp ${src}/php_stemmer.h .
+    export TEST_PHP_EXECUTABLE=${lib.getExe testPhp}
+    export TEST_PHP_ARGS="-c ${testPhp.phpIni} -d extension=$PWD/extracted/stemmer.so"
+    export STEMMER_CORPUS_DIR=${corpusData}
+    export STEMMER_CORPUS_MARKER="$PWD/corpus-passed"
+    export NO_INTERACTION=1 REPORT_EXIT_STATUS=1 TEST_TIMEOUT=600
+    "$TEST_PHP_EXECUTABLE" -n -d extension="$PWD/extracted/stemmer.so" \
+      .github/scripts/check-release.php ${ci.php} nts ${
+      if ci.platform == "darwin"
+      then "Darwin"
+      else "Linux"
+    }
+    "$TEST_PHP_EXECUTABLE" -n "$out/test/run-tests.php" -n -q --show-diff tests
+    test -f "$STEMMER_CORPUS_MARKER"
+  ''}
 ''

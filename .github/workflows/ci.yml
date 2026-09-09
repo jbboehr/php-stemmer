@@ -16,171 +16,10 @@ permissions:
     contents: read
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        name: "Test | PHP ${{ matrix.php-version }}"
-        strategy:
-            fail-fast: false
-            matrix:
-                php-version:
-                    - "8.1"
-                    - "8.2"
-                    - "8.3"
-                    - "8.4"
-                    - "8.5"
-        steps:
-            -   uses: actions/checkout@v7
-
-            -   uses: awalsh128/cache-apt-pkgs-action@v1.6.3
-                with:
-                    packages: libstemmer-dev valgrind
-                    version: 1
-
-            -   name: Install PHP
-                uses: shivammathur/setup-php@v2
-                with:
-                    coverage: "none"
-                    extensions: json, opcache
-                    php-version: "${{ matrix.php-version }}"
-
-            -   run: phpize
-
-            -   run: ./configure
-
-            -   run: make
-
-            -   run: make test
-                env:
-                    NO_INTERACTION: 1
-                    REPORT_EXIT_STATUS: 1
-
-            -   run: make test TEST_PHP_ARGS='-m'
-                env:
-                    NO_INTERACTION: 1
-                    REPORT_EXIT_STATUS: 1
-                    USE_ZEND_ALLOC: 0
-
-            -   name: Print Test Logs
-                if: failure()
-                run: find tests -name '*.log' -exec cat {} +
-
-    coverage:
-        runs-on: ubuntu-latest
-        name: "Coverage | PHP ${{ matrix.php-version }}"
-        strategy:
-            matrix:
-                php-version:
-                    - "8.5"
-        steps:
-            -   uses: actions/checkout@v7
-
-            -   uses: awalsh128/cache-apt-pkgs-action@v1.6.3
-                with:
-                    packages: lcov libstemmer-dev valgrind
-                    version: 1
-
-            -   name: Install PHP
-                uses: shivammathur/setup-php@v2
-                with:
-                    coverage: "none"
-                    extensions: json, opcache
-                    php-version: "${{ matrix.php-version }}"
-
-            -   run: phpize
-
-            -   run: ./configure CFLAGS="-fprofile-arcs -ftest-coverage ${CFLAGS}" LDFLAGS="--coverage ${LDFLAGS}"
-
-            -   run: make
-
-            -   name: Remove Configure Coverage Artifacts
-                run: find . -name '*conftest*.gcno' -delete
-
-            -   run: lcov --directory . --zerocounters
-
-            -   run: lcov --directory . --capture --compat-libtool --initial --output-file coverage.info
-
-            -   run: make test
-                env:
-                    NO_INTERACTION: 1
-                    REPORT_EXIT_STATUS: 1
-
-            -   name: Print Test Logs
-                if: failure()
-                run: find tests -name '*.log' -exec cat {} +
-
-            -   run: |
-                    lcov --no-checksum --directory . --capture --compat-libtool --output-file coverage.info
-                    lcov --remove coverage.info "/usr*" \
-                        --compat-libtool \
-                        --output-file coverage.info
-
-            -   name: Upload coverage reports to Codecov
-                uses: codecov/codecov-action@v7
-                with:
-                    files: coverage.info
-                    token: ${{ secrets.CODECOV_TOKEN }}
-                    slug: jbboehr/php-stemmer
-
-            -   name: Coveralls
-                uses: coverallsapp/github-action@v2
-                continue-on-error: true
-                with:
-                    file: coverage.info
-                    format: lcov
-                    parallel: true
-
-    finish:
-        needs: coverage
-        if: ${{ always() }}
-        runs-on: ubuntu-latest
-        steps:
-            -   name: Coveralls Finished
-                uses: coverallsapp/github-action@v2
-                with:
-                    parallel-finished: true
-
-    pie:
-        name: "PIE | PHP 8.5"
-        runs-on: ubuntu-latest
-        env:
-            PIE_VERSION: 1.4.10
-            PIE_SHA256: b88792235c8e80be568436d4cb043b49fd1869c89b64e83d23e2882ae19d70a8
-        steps:
-            -   uses: actions/checkout@v7
-
-            -   uses: awalsh128/cache-apt-pkgs-action@v1.6.3
-                with:
-                    packages: autoconf automake gcc libstemmer-dev libtool m4 make pkg-config
-                    version: 1
-
-            -   name: Install PHP
-                uses: shivammathur/setup-php@v2
-                with:
-                    coverage: "none"
-                    php-version: "8.5"
-                    tools: composer
-
-            -   name: Validate Composer Metadata
-                run: composer validate --strict
-
-            -   name: Download PIE
-                run: |
-                    curl --fail --location --silent --show-error \
-                        --output /tmp/pie.phar \
-                        "https://github.com/php/pie/releases/download/${PIE_VERSION}/pie.phar"
-                    echo "${PIE_SHA256}  /tmp/pie.phar" | sha256sum --check
-
-            -   name: Register Local PIE Package
-                run: php /tmp/pie.phar repository:add path .
-
-            -   name: Build Extension with PIE
-                run: php /tmp/pie.phar build 'jbboehr/php-stemmer:*@dev'
-
     nix-matrix:
         runs-on: ubuntu-latest
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
-            windows: ${{ steps.set-matrix.outputs.windows }}
         steps:
             -   uses: actions/checkout@v7
             -   uses: cachix/install-nix-action@v31
@@ -195,8 +34,6 @@ jobs:
                     set -Eeu
                     matrix="$(nix eval --json '.#githubActions.matrix')"
                     echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-                    windows=$(jq -c '{include: [.include[] | select(.platform == "windows-nts" or .platform == "windows-ts")]}' <<< "$matrix")
-                    echo "windows=$windows" >> "$GITHUB_OUTPUT"
 
     nix:
         name: "nix (${{ matrix.name }})"
@@ -207,12 +44,6 @@ jobs:
             matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
         steps:
             -   uses: actions/checkout@v7
-
-            -   uses: shivammathur/setup-php@v2
-                if: matrix.platform == 'darwin'
-                with:
-                    php-version: ${{ matrix.php }}
-                    coverage: none
 
             -   uses: cachix/install-nix-action@v31
                 with:
@@ -234,12 +65,21 @@ jobs:
 
             -   run: nix build -L ".#${{ matrix.attr }}"
 
-            -   name: Test extracted release archive outside Nix
-                if: matrix.release && !startsWith(matrix.platform, 'windows-')
-                env:
-                    PHP_MINOR: ${{ matrix.php }}
-                    PLATFORM: ${{ matrix.platform }}
-                run: bash .github/scripts/test-release.sh result "$PHP_MINOR" "$PLATFORM"
+            -   name: Upload coverage reports to Codecov
+                if: matrix.coverage
+                uses: codecov/codecov-action@v7
+                with:
+                    files: result/coverage.info
+                    token: ${{ secrets.CODECOV_TOKEN }}
+                    slug: jbboehr/php-stemmer
+
+            -   name: Coveralls
+                if: matrix.coverage
+                uses: coverallsapp/github-action@v2
+                continue-on-error: true
+                with:
+                    file: result/coverage.info
+                    format: lcov
 
             -   uses: actions/upload-artifact@v7
                 if: matrix.release
@@ -252,42 +92,66 @@ jobs:
                     retention-days: 14
                     overwrite: true
 
-    windows-release:
-        name: "Native Windows | PHP ${{ matrix.php }} | ${{ matrix.ts }}"
-        needs: [nix-matrix, nix]
-        runs-on: windows-latest
+    native-unix:
+        name: "Native ${{ matrix.platform }} | PHP 8.5"
+        needs: nix
+        runs-on: ${{ matrix.os }}
         strategy:
             fail-fast: false
-            matrix: ${{ fromJSON(needs.nix-matrix.outputs.windows) }}
+            matrix:
+                include:
+                    - { os: ubuntu-24.04, platform: linux, artifact-path: artifacts }
+                    - { os: macos-15, platform: darwin, artifact-path: artifacts/pie-8.5-darwin }
         steps:
             - uses: actions/checkout@v7
             - uses: shivammathur/setup-php@v2
+              if: matrix.platform == 'darwin'
               with:
-                  php-version: ${{ matrix.php }}
+                  php-version: '8.5'
                   coverage: none
-              env:
-                  phpts: ${{ matrix.ts }}
             - uses: actions/download-artifact@v8
               with:
-                  name: ${{ matrix.artifact }}
-                  path: artifact
-            - name: Load DLL and run PHPT tests
-              shell: pwsh
-              env:
-                  PHP_MINOR: ${{ matrix.php }}
-                  PHP_TS: ${{ matrix.ts }}
-                  NO_INTERACTION: 1
-                  REPORT_EXIT_STATUS: 1
+                  pattern: pie-8.5-${{ matrix.platform }}*
+                  # Single-artifact downloads extract directly into this path.
+                  path: ${{ matrix.artifact-path }}
+            - name: Test extracted release archives
               run: |
-                  $archive = Get-ChildItem artifact/*.zip
-                  Expand-Archive $archive.FullName -DestinationPath extension
-                  $dll = (Get-ChildItem extension/*.dll).FullName.Replace('\', '/')
-                  php -n -d "extension=$dll" .github/scripts/check-release.php $env:PHP_MINOR $env:PHP_TS Windows
-                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                  $env:TEST_PHP_ARGS = "-d extension=$dll"
-                  # The complete Snowball corpus also runs in the Nix/Wine checks.
-                  php -n artifact/test/run-tests.php -n -q --show-diff tests/stemmer_arginfo.phpt tests/stemmer_languages.phpt tests/stemmer_phpinfo.phpt tests/stemmer_stem_word.phpt
-                  exit $LASTEXITCODE
+                  for artifact in artifacts/pie-8.5-*; do
+                      platform="${artifact##*/pie-8.5-}"
+                      bash .github/scripts/test-release.sh "$artifact" 8.5 "$platform"
+                  done
+
+    native-windows:
+        name: "Native Windows | PHP 8.5 | NTS and ZTS"
+        needs: nix
+        runs-on: windows-latest
+        env:
+            NO_INTERACTION: 1
+            REPORT_EXIT_STATUS: 1
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/download-artifact@v8
+              with:
+                  pattern: pie-8.5-windows-*
+                  path: artifacts
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.5'
+                  coverage: none
+              env:
+                  phpts: nts
+            - name: Test NTS archive
+              shell: pwsh
+              run: .github/scripts/test-release.ps1 artifacts/pie-8.5-windows-nts nts
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.5'
+                  coverage: none
+              env:
+                  phpts: ts
+            - name: Test ZTS archive
+              shell: pwsh
+              run: .github/scripts/test-release.ps1 artifacts/pie-8.5-windows-ts ts
 
     docker:
         runs-on: ubuntu-latest

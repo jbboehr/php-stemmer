@@ -44,8 +44,8 @@ desktop integration, and graphical drivers are disabled. No desktop
 display is inherited. The pinned Microsoft runtime DLLs used by Wine are
 test dependencies and are not included in the extension output.
 
-These checks exercise Windows PHP under Wine. The release CI jobs also load
-each packaged DLL and run the API tests on native Windows. Concurrent requests
+These checks exercise Windows PHP under Wine. One native Windows CI job also
+loads the PHP 8.5 NTS and ZTS archives and runs the API tests. Concurrent requests
 through a multithreaded SAPI remain unverified. See [PIE binary releases](releases.md)
 for the packaged downloads and publication workflow.
 
