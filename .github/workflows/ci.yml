@@ -233,3 +233,9 @@ jobs:
                     DOCKER_NAME: ${{ matrix.DOCKER_NAME }}
                     TEST_PHP_EXECUTABLE: /usr/bin/php
                 run: bash ./.github/scripts/docker.sh
+
+    release:
+        needs: [nix, native-unix, native-windows, docker, docker-fedora]
+        uses: ./.github/workflows/release.yml
+        permissions:
+            contents: write

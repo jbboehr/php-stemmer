@@ -52,15 +52,14 @@ Codecov and Coveralls after the Nix coverage check succeeds.
    version, for example `release/v2.0.1`. The final tag must not exist yet.
 3. Let the `ci` workflow finish. Its generated Nix matrix builds, checks, and
    uploads the archives. The Docker and three native jobs must also pass.
-4. After successful CI, the `Release` workflow checks the branch still points
-   to the tested commit, downloads that run's archives, and creates a GitHub
-   draft release containing the ZIPs, `SHA256SUMS`, and generated release notes.
+4. CI's final `release` job calls the `Release` workflow from the same commit.
+   It checks the branch still points to the tested commit, downloads that run's
+   archives, and creates a GitHub draft release containing the ZIPs,
+   `SHA256SUMS`, and generated release notes.
 5. Inspect the draft's notes and downloads on GitHub. When ready, click
    **Publish release**. GitHub creates `vMAJOR.MINOR.PATCH` at the tested commit
    and publishes the release. Creating the draft does not create the tag.
 
-The release workflow must be present on the repository's default branch before
-a release branch or tag is pushed. Merge workflow changes there first as well.
 Other branches and pull requests do not create releases.
 
 You can also push an existing stable tag named `vMAJOR.MINOR.PATCH` to prepare
@@ -71,7 +70,7 @@ it at the draft's tested commit before publishing.
 
 Existing drafts are never overwritten. To refresh one after code changes,
 delete the draft and push the changes to its release branch. To retry a failed
-draft upload, delete the unfinished draft and rerun the `Release` workflow.
+draft upload, delete the unfinished draft and rerun the failed job in that CI run.
 Published releases are left untouched. Keep release refs fixed while the
 release workflow runs, and wait for it to finish before publishing the draft.
 If CI needs retrying, rerun **all jobs** to refresh the complete artifact set.
@@ -106,5 +105,5 @@ nix build .#release-php85-linux-musl
 bash .github/scripts/test-release.sh result 8.5 linux-musl
 ```
 
-The Linux host cannot execute the macOS or native Windows CI jobs. A successful
-GitHub CI run is required before the release workflow will create a draft.
+The Linux host cannot execute the macOS or native Windows CI jobs. All build and
+test jobs in GitHub CI must pass before the release workflow will create a draft.
