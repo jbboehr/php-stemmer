@@ -1,5 +1,6 @@
 {
   runCommand,
+  fetchurl,
   lib,
   python3,
   unzip,
@@ -44,6 +45,9 @@ runCommand filename {
           archive.writestr(entry, Path(source).read_bytes())
   PY
   unzip -t "$out/${filename}.zip"
+  PHP_INI_SCAN_DIR= ${lib.getExe php} -c ${php.phpIni} ${./check-pie-archive.php} \
+    ${import ../pie.nix {inherit fetchurl;}} ${src} \
+    "$out/${filename}.zip" ${lib.escapeShellArg (builtins.toJSON ci)}
   ${lib.optionalString (testPhp != null) ''
     unzip -q "$out/${filename}.zip" -d extracted
     cp -r ${src}/tests tests

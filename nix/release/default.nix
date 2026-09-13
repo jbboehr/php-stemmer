@@ -54,7 +54,7 @@
         else php;
       binary = "${extension}/stemmer.so";
       member = "stemmer.so";
-      filename = "php_stemmer-${version}_php${minor}-${unixTarget.arch}-${unixTarget.os}-${libc}-nts";
+      filename = "php_stemmer-v${version}_php${minor}-${unixTarget.arch}-${unixTarget.os}-${libc}-nts";
       ci = {
         php = minor;
         inherit platform;
@@ -65,7 +65,7 @@
     lib.nameValuePair "release-${phpName}-${platform}" package;
   makeWindowsArchive = name: extension: let
     inherit (extension) php;
-    filename = "php_stemmer-${version}-${php.minor}-${php.threadSafety}-${php.compiler}-x86_64";
+    filename = "php_stemmer-v${version}-${php.minor}-${php.threadSafety}-${php.compiler}-x86_64";
   in
     lib.nameValuePair "release-${name}" (makeArchive {
       inherit filename;
@@ -74,6 +74,7 @@
       member = "${filename}.dll";
       ci = {
         php = php.minor;
+        inherit (php) compiler;
         platform = "windows-${php.threadSafety}";
         ts = php.threadSafety;
       };

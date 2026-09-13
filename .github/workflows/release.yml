@@ -60,4 +60,8 @@ jobs:
                     tag_ref=$(git ls-remote --tags origin "refs/tags/$TAG")
                     test -z "$tag_ref"
                   fi
-                  gh release create "$TAG" ./*.zip SHA256SUMS --draft --target "$CI_SHA" --generate-notes --repo "$GITHUB_REPOSITORY"
+                  notes=()
+                  if [[ -f "$GITHUB_WORKSPACE/docs/development/release-notes-$TAG.md" ]]; then
+                    notes=(--notes-file "$GITHUB_WORKSPACE/docs/development/release-notes-$TAG.md")
+                  fi
+                  gh release create "$TAG" ./*.zip SHA256SUMS --draft --target "$CI_SHA" --generate-notes "${notes[@]}" --repo "$GITHUB_REPOSITORY"

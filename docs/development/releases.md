@@ -27,6 +27,9 @@ reproducibility. Linux binaries have no RPATH and require only their system
 libc. macOS builds require an arm64 Mach-O binary and reject Nix paths in its
 load commands. Windows compiler
 labels match the official PHP SDKs pinned in `nix/windows/php-versions.json`.
+Archive names and Windows DLL names retain the release tag's `v` prefix: PIE
+uses Packagist's version string, such as `v2.0.2`, when finding release assets.
+Every archive build checks these names against the pinned PIE implementation.
 
 The Unix recipe compiles against Nix PHP's NTS headers, including for musl,
 using the target libc's compiler and static Snowball library. Nix extracts each
@@ -47,15 +50,17 @@ Codecov and Coveralls after the Nix coverage check succeeds.
 
 ## Preparing and publishing a release
 
-1. Update the version and release date in `php_stemmer.h` and commit the changes.
+1. Update the version and release date in `php_stemmer.h`. Prepare release notes
+   in `docs/development/release-notes-vMAJOR.MINOR.PATCH.md` and commit the changes.
 2. Push a branch named `release/vMAJOR.MINOR.PATCH` that matches the extension
-   version, for example `release/v2.0.1`. The final tag must not exist yet.
+   version, for example `release/v2.0.2`. The final tag must not exist yet.
 3. Let the `ci` workflow finish. Its generated Nix matrix builds, checks, and
    uploads the archives. The Docker and three native jobs must also pass.
 4. CI's final `release` job calls the `Release` workflow from the same commit.
    It checks the branch still points to the tested commit, downloads that run's
    archives, and creates a GitHub draft release containing the ZIPs,
-   `SHA256SUMS`, and generated release notes.
+   `SHA256SUMS`, and the prepared release notes followed by GitHub's generated
+   notes.
 5. Inspect the draft's notes and downloads on GitHub. When ready, click
    **Publish release**. GitHub creates `vMAJOR.MINOR.PATCH` at the tested commit
    and publishes the release. Creating the draft does not create the tag.
